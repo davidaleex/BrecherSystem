@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BrecherSystem - KW {{ week_num }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="week-header">
+                <a href="/" class="back-button">← Zurück zur Übersicht</a>
+                <div class="week-title-section">
+                    <h1>📊 KALENDERWOCHE {{ week_num }}</h1>
+                    <button class="info-button" onclick="togglePointsInfo()">
+                        <i class="fas fa-info-circle"></i>
+                        <span>Punkte-Info</span>
+                    </button>
+                </div>
+                <div class="week-nav">
+                    {% if week_num > 39 %}
+                    <a href="/week/{{ week_num - 1 }}" class="nav-button">← KW{{ week_num - 1 }}</a>
+                    {% endif %}
+                    {% if week_num < 46 %}
+                    <a href="/week/{{ week_num + 1 }}" class="nav-button">KW{{ week_num + 1 }} →</a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Points Info Panel -->
+            <div id="points-info" class="points-info-panel">
+                <div class="info-grid">
+                    <div class="info-category">
+                        <strong><i class="fas fa-dumbbell"></i> Gym:</strong>
+                        <span>Sessions × 2 (max 4)</span>
+                        <small>2 Sessions = 4 Punkte</small>
+                    </div>
+                    <div class="info-category">
+                        <strong><i class="fas fa-utensils"></i> Food:</strong>
+                        <span>Mahlzeiten (max 3)</span>
+                        <small>3 gesunde Mahlzeiten = 3 Punkte</small>
+                    </div>
+                    <div class="info-category">
+                        <strong><i class="fas fa-pills"></i> Saps:</strong>
+                        <span>1 = genommen, 0 = nicht</span>
+                        <small>Täglich genommen = 1 Punkt</small>
+                    </div>
+                    <div class="info-category">
+                        <strong><i class="fas fa-bed"></i> Sleep:</strong>
+                        <span>7-9h = 4, 6-7h/9-10h = 3, sonst 1</span>
+                        <small>Optimaler Schlaf = 4 Punkte</small>
+                    </div>
+                    <div class="info-category">
+                        <strong><i class="fas fa-book"></i> Study:</strong>
+                        <span>4+h = 3, 2-4h = 2, 1-2h = 1</span>
+                        <small>Mehr lernen = mehr Punkte</small>
+                    </div>
+                    <div class="info-category">
+                        <strong><i class="fas fa-walking"></i> Steps:</strong>
+                        <span>Schritte ÷ 5000</span>
+                        <small>15k Schritte = 3 Punkte</small>
+                    </div>
+                    <div class="info-category">
+                        <strong><i class="fas fa-home"></i> Hausarbeit:</strong>
+                        <span>Direkte Punkte (max 3)</span>
+                        <small>Viel geholfen = 3 Punkte</small>
+                    </div>
+                    <div class="info-category">
+                        <strong><i class="fas fa-dollar-sign"></i> Work:</strong>
+                        <span>CHF ÷ 100</span>
+                        <small>300 CHF = 3 Punkte</small>
+                    </div>
+                    <div class="info-category">
+                        <strong><i class="fas fa-heart"></i> Recovery:</strong>
+                        <span>'R' = 1 Punkt</span>
+                        <small>Rest Day einhalten</small>
+                    </div>
+                    <div class="info-category">
+                        <strong><i class="fas fa-headphones"></i> Podcast/Read:</strong>
+                        <span>Stunden × 2 (max 6)</span>
+                        <small>3h hören = 6 Punkte</small>
+                    </div>
+                    <div class="info-category">
+                        <strong><i class="fas fa-exclamation-triangle"></i> Fehler:</strong>
+                        <span>Anzahl × -2</span>
+                        <small>Jeder Fehler = -2 Punkte</small>
+                    </div>
+                </div>
+                <div class="info-legend">
+                    <div class="legend-item">
+                        <span class="legend-color green"></span>
+                        <span>Grün = Ziel erreicht</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-color orange"></span>
+                        <span>Orange = Teilweise erreicht</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-color red"></span>
+                        <span>Rot = Ziel verfehlt</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="brecher-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th class="day-header">Tag</th>
+                        {% for person in names %}
+                        <th colspan="{{ categories|length + 1 }}" class="person-header">{{ person }}</th>
+                        {% endfor %}
+                    </tr>
+                    <tr>
+                        <th></th>
+                        {% for person in names %}
+                            {% for category in categories %}
+                            <th class="category-header">{{ category }}</th>
+                            {% endfor %}
+                            <th class="total-header">Total</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for day in days %}
+                    <tr>
+                        <td class="day-cell">{{ day }}</td>
+                        {% for person in names %}
+                            {% for category in categories %}
+                            <td class="data-cell {{ week_data[person][day][category]['color'] }}">
+                                <input type="text"
+                                       value="{{ week_data[person][day][category]['value'] }}"
+                                       data-person="{{ person }}"
+                                       data-day="{{ day }}"
+                                       data-category="{{ category }}"
+                                       data-week="KW{{ week_num }}"
+                                       class="cell-input"
+                                       onchange="updateCell(this)">
+                                <span class="points">{{ week_data[person][day][category]['points'] }}</span>
+                            </td>
+                            {% endfor %}
+                            <td class="daily-total" id="daily-{{ person }}-{{ day }}">
+                                {{ week_data[person][day]['daily_total'] }}
+                            </td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+
+                    <!-- Wochentotal Row -->
+                    <tr class="weekly-total-row">
+                        <td class="week-total-header">Wochentotal</td>
+                        {% for person in names %}
+                            {% for category in categories %}
+                            <td class="week-category-total">
+                                <!-- Hier könnten Kategorie-Totals stehen -->
+                            </td>
+                            {% endfor %}
+                            <td class="weekly-total" id="weekly-{{ person }}">
+                                {{ week_data[person]['weekly_total'] }}
+                            </td>
+                        {% endfor %}
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="scoreboard">
+            <h2>🏆 SCOREBOARD KW {{ week_num }}</h2>
+            <div class="score-table" id="scoreboard">
+                {% for person, score in scoreboard %}
+                <div class="score-row position-{{ loop.index }}">
+                    <span class="position">{{ loop.index }}.</span>
+                    <span class="name">{{ person }}</span>
+                    <span class="score">{{ score }} Punkte</span>
+                    {% if loop.index == 1 %}
+                    <span class="trophy">🥇</span>
+                    {% elif loop.index == 2 %}
+                    <span class="trophy">🥈</span>
+                    {% elif loop.index == 3 %}
+                    <span class="trophy">🥉</span>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="actions">
+            <button onclick="saveData()" class="save-button">💾 Daten speichern</button>
+            <button onclick="loadData()" class="load-button">📁 Daten laden</button>
+        </div>
+    </div>
+
+    <script>
+        function updateCell(input) {
+            const data = {
+                week: input.dataset.week,
+                person: input.dataset.person,
+                day: input.dataset.day,
+                category: input.dataset.category,
+                value: input.value
+            };
+
+            fetch('/update_cell', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.error) {
+                    console.error('Error:', result.error);
+
+                    // Bei Recovery-Validierungsfehlern: Feld leeren und Fehlermeldung zeigen
+                    if (result.error.includes('Recovery')) {
+                        input.value = '';  // Feld leeren
+                        showNotification('❌ ' + result.error);
+
+                        // Zelle auf weiß setzen
+                        const cell = input.parentElement;
+                        cell.className = 'data-cell white';
+                        cell.querySelector('.points').textContent = '0';
+                    } else {
+                        alert('Fehler: ' + result.error);
+                    }
+                    return;
+                }
+
+                // Update cell appearance
+                const cell = input.parentElement;
+                cell.className = 'data-cell ' + result.color;
+                cell.querySelector('.points').textContent = result.points;
+
+                // Update daily total
+                const dailyTotalId = `daily-${data.person}-${data.day}`;
+                document.getElementById(dailyTotalId).textContent = result.daily_total;
+
+                // Update weekly total
+                const weeklyTotalId = `weekly-${data.person}`;
+                document.getElementById(weeklyTotalId).textContent = result.weekly_total;
+
+                // Update scoreboard
+                updateScoreboard(result.scoreboard);
+
+                // Auto-save
+                saveData();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Fehler beim Update der Zelle');
+            });
+        }
+
+        function updateScoreboard(scoreboard) {
+            const scoreboardElement = document.getElementById('scoreboard');
+            scoreboardElement.innerHTML = '';
+
+            scoreboard.forEach((entry, index) => {
+                const [person, score] = entry;
+                const trophies = ['🥇', '🥈', '🥉'];
+                const trophy = index < 3 ? trophies[index] : '';
+
+                const scoreRow = document.createElement('div');
+                scoreRow.className = `score-row position-${index + 1}`;
+                scoreRow.innerHTML = `
+                    <span class="position">${index + 1}.</span>
+                    <span class="name">${person}</span>
+                    <span class="score">${score} Punkte</span>
+                    <span class="trophy">${trophy}</span>
+                `;
+                scoreboardElement.appendChild(scoreRow);
+            });
+        }
+
+        function saveData() {
+            fetch('/api/save', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showNotification('✅ Daten gespeichert!');
+                    } else {
+                        showNotification('❌ Fehler beim Speichern');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showNotification('❌ Fehler beim Speichern');
+                });
+        }
+
+        function loadData() {
+            fetch('/api/load', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showNotification('✅ Daten geladen!');
+                        location.reload();
+                    } else {
+                        showNotification('❌ Fehler beim Laden');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showNotification('❌ Fehler beim Laden');
+                });
+        }
+
+        function showNotification(message) {
+            const notification = document.createElement('div');
+            notification.className = 'notification';
+            notification.textContent = message;
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+
+        // Auto-save alle 30 Sekunden
+        setInterval(() => {
+            fetch('/api/save', { method: 'POST' });
+        }, 30000);
+
+        // Points info panel toggle
+        function togglePointsInfo() {
+            const panel = document.getElementById('points-info');
+            const button = document.querySelector('.info-button');
+
+            if (panel.classList.contains('show')) {
+                panel.classList.remove('show');
+                button.innerHTML = '<i class="fas fa-info-circle"></i><span>Punkte-Info</span>';
+            } else {
+                panel.classList.add('show');
+                button.innerHTML = '<i class="fas fa-times"></i><span>Schließen</span>';
+            }
+        }
+
+        // Close info panel when clicking outside
+        document.addEventListener('click', function(event) {
+            const panel = document.getElementById('points-info');
+            const button = document.querySelector('.info-button');
+
+            if (!panel.contains(event.target) && !button.contains(event.target)) {
+                if (panel.classList.contains('show')) {
+                    panel.classList.remove('show');
+                    button.innerHTML = '<i class="fas fa-info-circle"></i><span>Punkte-Info</span>';
+                }
+            }
+        });
+    </script>
+</body>
+</html>

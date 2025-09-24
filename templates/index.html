@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BrecherSystem - Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <i class="fas fa-trophy"></i>
+                <span>BrecherSystem</span>
+            </div>
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="#dashboard" class="nav-link active" onclick="showSection('dashboard')">
+                        <i class="fas fa-chart-line"></i> Dashboard
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#weeks" class="nav-link" onclick="showSection('weeks')">
+                        <i class="fas fa-calendar-week"></i> Wochen
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#stats" class="nav-link" onclick="showSection('stats')">
+                        <i class="fas fa-chart-bar"></i> Statistiken
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#info" class="nav-link" onclick="showSection('info')">
+                        <i class="fas fa-info-circle"></i> Info
+                    </a>
+                </li>
+            </ul>
+            <div class="nav-toggle" onclick="toggleMenu()">
+                <i class="fas fa-bars"></i>
+            </div>
+        </div>
+    </nav>
+
+    <div class="main-container">
+        <!-- Dashboard Section -->
+        <section id="dashboard" class="content-section active">
+            <div class="section-header">
+                <h1><i class="fas fa-chart-line"></i> Dashboard</h1>
+                <p>Aktuelle Standings und Übersicht</p>
+            </div>
+
+        <!-- Scoreboards Section -->
+        <div class="scoreboards-section">
+            <div class="scoreboard-container">
+                <div class="scoreboard-card">
+                    <h2>🗓️ MONATS-SCOREBOARD</h2>
+                    <div class="score-list">
+                        {% for person, score in monthly_scoreboard %}
+                        <div class="score-item position-{{ loop.index }}">
+                            <span class="position">{{ loop.index }}.</span>
+                            <span class="name">{{ person }}</span>
+                            <span class="score">{{ score }} Punkte</span>
+                            {% if loop.index == 1 %}
+                            <span class="trophy">🥇</span>
+                            {% elif loop.index == 2 %}
+                            <span class="trophy">🥈</span>
+                            {% elif loop.index == 3 %}
+                            <span class="trophy">🥉</span>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="scoreboard-card">
+                    <h2>🏆 TOTAL-SCOREBOARD</h2>
+                    <div class="score-list">
+                        {% for person, score in total_scoreboard %}
+                        <div class="score-item position-{{ loop.index }}">
+                            <span class="position">{{ loop.index }}.</span>
+                            <span class="name">{{ person }}</span>
+                            <span class="score">{{ score }} Punkte</span>
+                            {% if loop.index == 1 %}
+                            <span class="trophy">🏆</span>
+                            {% elif loop.index == 2 %}
+                            <span class="trophy">🥈</span>
+                            {% elif loop.index == 3 %}
+                            <span class="trophy">🥉</span>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="scoreboard-card">
+                    <h2>🏅 WOCHENGEWINNER</h2>
+                    <div class="score-list" id="weekly-winners">
+                        <!-- Weekly winners werden mit JavaScript geladen -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        </section>
+
+        <!-- Wochen Section -->
+        <section id="weeks" class="content-section">
+            <div class="section-header">
+                <h1><i class="fas fa-calendar-week"></i> Kalenderwochen</h1>
+                <p>Wähle eine Kalenderwoche zur Bearbeitung</p>
+            </div>
+
+            <div class="week-grid">
+                {% for week in weeks %}
+                <a href="/week/{{ week }}" class="week-card">
+                    <div class="week-card-icon">
+                        <i class="fas fa-calendar-day"></i>
+                    </div>
+                    <h3>KW {{ week }}</h3>
+                    <p>Kalenderwoche {{ week }}</p>
+                    <div class="week-card-arrow">
+                        <i class="fas fa-arrow-right"></i>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </section>
+
+        <!-- Statistiken Section -->
+        <section id="stats" class="content-section">
+            <div class="section-header">
+                <h1><i class="fas fa-chart-bar"></i> Statistiken</h1>
+                <p>Detaillierte Übersicht und Vergleiche</p>
+            </div>
+
+            <!-- Weekly Overview Table -->
+            <div class="weekly-overview">
+                <h2><i class="fas fa-table"></i> WOCHEN-ÜBERSICHT</h2>
+                <div class="overview-table">
+                    <table class="overview-grid">
+                        <thead>
+                            <tr>
+                                <th>Woche</th>
+                                <th>David</th>
+                                <th>Cedric</th>
+                                <th>Müller</th>
+                                <th>Gewinner</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for week_data in weekly_overview %}
+                            <tr>
+                                <td class="week-cell">
+                                    <a href="/week/{{ week_data.week }}">KW{{ week_data.week }}</a>
+                                </td>
+                                <td class="score-cell">{{ week_data.scores.get('David', 0) }}</td>
+                                <td class="score-cell">{{ week_data.scores.get('Cedric', 0) }}</td>
+                                <td class="score-cell">{{ week_data.scores.get('Müller', 0) }}</td>
+                                <td class="winner-cell">
+                                    {% if week_data.winner %}
+                                    🏆 {{ week_data.winner[0] }}
+                                    {% else %}
+                                    -
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Current Week Leaders -->
+            <div class="current-leaders" id="current-leaders">
+                <h2><i class="fas fa-crown"></i> AKTUELLE WOCHE - KATEGORIE-FÜHRER</h2>
+                <div class="leaders-grid" id="leaders-grid">
+                    <!-- Leaders werden mit JavaScript geladen -->
+                </div>
+            </div>
+
+            <!-- Performance Charts -->
+            <div class="charts-section">
+                <div class="chart-card">
+                    <h3><i class="fas fa-dumbbell"></i> Gym Progression</h3>
+                    <div class="chart-container">
+                        <canvas id="gymChart" width="400" height="200"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <h3><i class="fas fa-utensils"></i> Food Tracking</h3>
+                    <div class="chart-container">
+                        <canvas id="foodChart" width="400" height="200"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <h3><i class="fas fa-bed"></i> Sleep Quality</h3>
+                    <div class="chart-container">
+                        <canvas id="sleepChart" width="400" height="200"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <h3><i class="fas fa-book"></i> Study Progress</h3>
+                    <div class="chart-container">
+                        <canvas id="studyChart" width="400" height="200"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <h3><i class="fas fa-walking"></i> Steps Counter</h3>
+                    <div class="chart-container">
+                        <canvas id="stepsChart" width="400" height="200"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <h3><i class="fas fa-dollar-sign"></i> Work Earnings</h3>
+                    <div class="chart-container">
+                        <canvas id="workChart" width="400" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Info Section -->
+        <section id="info" class="content-section">
+            <div class="section-header">
+                <h1><i class="fas fa-info-circle"></i> Information & Anleitung</h1>
+                <p>Alles was du über das BrecherSystem wissen musst</p>
+            </div>
+
+            <div class="info-cards">
+                <div class="info-card">
+                    <h3><i class="fas fa-rocket"></i> Getting Started</h3>
+                    <ul>
+                        <li>Wähle eine Kalenderwoche aus</li>
+                        <li>Trage deine täglichen Werte ein</li>
+                        <li>Beobachte deine Punkte in Echtzeit</li>
+                        <li>Vergleiche dich mit anderen</li>
+                    </ul>
+                </div>
+
+                <div class="info-card">
+                    <h3><i class="fas fa-network-wired"></i> Netzwerk-Zugriff</h3>
+                    <p><strong>Andere Geräte im WLAN können zugreifen über:</strong></p>
+                    <div class="network-links">
+                        <code>http://192.168.1.105:8080</code>
+                        <p>📱 Funktioniert auf Smartphone, Tablet & Desktop</p>
+                    </div>
+                </div>
+
+                <div class="info-card">
+                    <h3><i class="fas fa-save"></i> Daten-Management</h3>
+                    <ul>
+                        <li>✅ Auto-Save alle 30 Sekunden</li>
+                        <li>💾 Manuelles Speichern möglich</li>
+                        <li>📁 Daten bleiben lokal gespeichert</li>
+                        <li>🔄 Echtzeit-Updates zwischen Geräten</li>
+                    </ul>
+                </div>
+            </div>
+
+        <div class="instructions">
+            <h2><i class="fas fa-book"></i> Bewertungssystem</h2>
+            <div class="instruction-grid">
+                <div class="instruction-item">
+                    <strong>Gym:</strong> Anzahl Sessions (2 = 4 Punkte)
+                </div>
+                <div class="instruction-item">
+                    <strong>Food:</strong> Gesunde Mahlzeiten (max 3)
+                </div>
+                <div class="instruction-item">
+                    <strong>Saps:</strong> 1 = genommen, 0 = nicht
+                </div>
+                <div class="instruction-item">
+                    <strong>Sleep:</strong> Stunden (7-9 = optimal)
+                </div>
+                <div class="instruction-item">
+                    <strong>Study:</strong> Stunden (4+ = top)
+                </div>
+                <div class="instruction-item">
+                    <strong>Steps:</strong> Schritte (15k+ = grün)
+                </div>
+                <div class="instruction-item">
+                    <strong>Hausarbeit:</strong> Direkte Punkte (3 = max)
+                </div>
+                <div class="instruction-item">
+                    <strong>Work:</strong> CHF Verdienst (/100)
+                </div>
+                <div class="instruction-item">
+                    <strong>Recovery:</strong> "R" für Rest Day
+                </div>
+                <div class="instruction-item">
+                    <strong>Podcast/Read:</strong> Stunden (3+ = grün)
+                </div>
+                <div class="instruction-item">
+                    <strong>Fehler:</strong> Anzahl (-2 Punkte pro Fehler)
+                </div>
+            </div>
+        </div>
+        </section>
+    </div>
+
+    <!-- Footer -->
+    <footer class="main-footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h4><i class="fas fa-trophy"></i> BrecherSystem</h4>
+                <p>Web-basiertes Punkte-Tracking System</p>
+            </div>
+            <div class="footer-section">
+                <h4><i class="fas fa-network-wired"></i> Netzwerk</h4>
+                <p>Läuft lokal - Zugriff für alle Geräte im WLAN</p>
+            </div>
+            <div class="footer-section">
+                <h4><i class="fas fa-code"></i> Status</h4>
+                <p>✅ Server aktiv auf Port 8080</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Navigation functionality
+        function showSection(sectionId) {
+            // Hide all sections
+            document.querySelectorAll('.content-section').forEach(section => {
+                section.classList.remove('active');
+            });
+
+            // Remove active class from all nav links
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('active');
+            });
+
+            // Show selected section
+            document.getElementById(sectionId).classList.add('active');
+
+            // Add active class to clicked nav link
+            event.target.classList.add('active');
+        }
+
+        // Mobile menu toggle
+        function toggleMenu() {
+            const navMenu = document.querySelector('.nav-menu');
+            navMenu.classList.toggle('active');
+        }
+
+        // Auto-save funktionalität
+        setInterval(() => {
+            fetch('/api/save', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        console.log('Daten automatisch gespeichert');
+                    }
+                });
+        }, 30000); // Alle 30 Sekunden speichern
+
+        // Chart initialization
+        let charts = {};
+
+        function createChart(canvasId, category, data) {
+            const ctx = document.getElementById(canvasId).getContext('2d');
+
+            const colors = {
+                'David': '#FF6B6B',
+                'Cedric': '#4ECDC4',
+                'Müller': '#45B7D1'
+            };
+
+            const datasets = Object.keys(colors).map(person => ({
+                label: person,
+                data: data[person],
+                borderColor: colors[person],
+                backgroundColor: colors[person] + '20',
+                tension: 0.4,
+                fill: false,
+                pointBackgroundColor: colors[person],
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2,
+                pointRadius: 5
+            }));
+
+            charts[canvasId] = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.weeks,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: '#f0f0f0'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                color: '#f0f0f0'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                        }
+                    },
+                    interaction: {
+                        mode: 'nearest',
+                        axis: 'x',
+                        intersect: false
+                    }
+                }
+            });
+        }
+
+        function loadCharts() {
+            fetch('/api/chart-data')
+                .then(response => response.json())
+                .then(data => {
+                    const categoryData = data.category_data;
+                    const leaders = data.current_leaders;
+
+                    // Create charts for each category
+                    createChart('gymChart', 'Gym', categoryData.Gym);
+                    createChart('foodChart', 'Food', categoryData.Food);
+                    createChart('sleepChart', 'Sleep', categoryData.Sleep);
+                    createChart('studyChart', 'Study', categoryData.Study);
+                    createChart('stepsChart', 'Steps', categoryData.Steps);
+                    createChart('workChart', 'Work', categoryData.Work);
+
+                    // Update current week leaders
+                    updateCurrentLeaders(leaders);
+
+                    // Update weekly winners on dashboard
+                    updateWeeklyWinners();
+                })
+                .catch(error => {
+                    console.error('Error loading chart data:', error);
+                });
+        }
+
+        function updateCurrentLeaders(leaders) {
+            const leadersGrid = document.getElementById('leaders-grid');
+            leadersGrid.innerHTML = '';
+
+            Object.keys(leaders).forEach(category => {
+                const leaderData = leaders[category];
+                const leaderCard = document.createElement('div');
+                leaderCard.className = 'leader-card';
+
+                const categoryIcons = {
+                    'Gym': 'fas fa-dumbbell',
+                    'Food': 'fas fa-utensils',
+                    'Sleep': 'fas fa-bed',
+                    'Study': 'fas fa-book',
+                    'Steps': 'fas fa-walking',
+                    'Work': 'fas fa-dollar-sign'
+                };
+
+                leaderCard.innerHTML = `
+                    <div class="leader-icon">
+                        <i class="${categoryIcons[category]}"></i>
+                    </div>
+                    <h4>${category}</h4>
+                    <div class="leader-info">
+                        ${leaderData.leader ?
+                            `<span class="leader-name">🏆 ${leaderData.leader}</span>
+                             <span class="leader-score">${leaderData.score} Punkte</span>` :
+                            '<span class="no-leader">Noch keine Daten</span>'}
+                    </div>
+                `;
+
+                leadersGrid.appendChild(leaderCard);
+            });
+        }
+
+        function updateWeeklyWinners() {
+            // Get weekly overview data (it's already available in the template)
+            const weeklyOverview = {{ weekly_overview | tojson }};
+            const weeklyWinnersContainer = document.getElementById('weekly-winners');
+
+            if (!weeklyWinnersContainer) return;
+
+            weeklyWinnersContainer.innerHTML = '';
+
+            // Count wins for each person
+            const winCounts = { 'David': 0, 'Cedric': 0, 'Müller': 0 };
+
+            weeklyOverview.forEach(week => {
+                if (week.winner && week.winner.length > 0) {
+                    const winnerName = week.winner[0];
+                    if (winCounts.hasOwnProperty(winnerName)) {
+                        winCounts[winnerName]++;
+                    }
+                }
+            });
+
+            // Convert to sorted array
+            const sortedWins = Object.entries(winCounts)
+                .sort((a, b) => b[1] - a[1])
+                .map(([name, wins]) => ({ name, wins }));
+
+            // Display the winners
+            sortedWins.forEach((winner, index) => {
+                const winnerItem = document.createElement('div');
+                winnerItem.className = `score-item position-${index + 1}`;
+
+                const trophies = ['🥇', '🥈', '🥉'];
+                const trophy = index < 3 ? trophies[index] : '';
+
+                winnerItem.innerHTML = `
+                    <span class="position">${index + 1}.</span>
+                    <span class="name">${winner.name}</span>
+                    <span class="score">${winner.wins} Siege</span>
+                    <span class="trophy">${trophy}</span>
+                `;
+
+                weeklyWinnersContainer.appendChild(winnerItem);
+            });
+        }
+
+        // Smooth scrolling for anchor links
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check for URL hash and show appropriate section
+            const hash = window.location.hash.substring(1);
+            if (hash && document.getElementById(hash)) {
+                showSection(hash);
+            }
+
+            // Load charts when page loads
+            loadCharts();
+        });
+    </script>
+</body>
+</html>
