@@ -169,6 +169,28 @@ def backup_to_json(filename=None):
     print(f"✅ Database backed up to {filename}")
     return filename
 
+def get_all_weeks():
+    """Get all available weeks from database."""
+    conn = sqlite3.connect(DATABASE_PATH)
+    cursor = conn.cursor()
+
+    cursor.execute('SELECT DISTINCT week FROM brecher_data ORDER BY week')
+    weeks_raw = cursor.fetchall()
+    conn.close()
+
+    # Extrahiere Wochennummern aus "KW39" Format
+    weeks = []
+    for week_tuple in weeks_raw:
+        week_str = week_tuple[0]
+        if week_str.startswith('KW'):
+            try:
+                week_num = int(week_str[2:])  # "KW39" -> 39
+                weeks.append(week_num)
+            except ValueError:
+                continue
+
+    return sorted(weeks)
+
 def get_database_stats():
     """Get database statistics."""
     conn = sqlite3.connect(DATABASE_PATH)

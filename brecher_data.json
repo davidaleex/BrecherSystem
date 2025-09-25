@@ -12,7 +12,10 @@
         "Work": "216",
         "Recovery": "0",
         "Podcast/Read": "0",
-        "Fehler": "0"
+        "Fehler": "0",
+        "Fasten": "",
+        "Organisatorisches": "2",
+        "Cold Plunge": ""
       },
       "Di": {
         "Gym": "1",
@@ -186,7 +189,7 @@
         "Fehler": ""
       }
     },
-    "M\u00fcller": {
+    "Müller": {
       "Mo": {
         "Gym": "2",
         "Food": "2",
@@ -467,7 +470,7 @@
         "Fehler": ""
       }
     },
-    "M\u00fcller": {
+    "Müller": {
       "Mo": {
         "Gym": "",
         "Food": "",
@@ -748,7 +751,7 @@
         "Fehler": ""
       }
     },
-    "M\u00fcller": {
+    "Müller": {
       "Mo": {
         "Gym": "",
         "Food": "",
@@ -1029,7 +1032,7 @@
         "Fehler": ""
       }
     },
-    "M\u00fcller": {
+    "Müller": {
       "Mo": {
         "Gym": "",
         "Food": "",
@@ -1310,7 +1313,7 @@
         "Fehler": ""
       }
     },
-    "M\u00fcller": {
+    "Müller": {
       "Mo": {
         "Gym": "",
         "Food": "",
@@ -1591,7 +1594,7 @@
         "Fehler": ""
       }
     },
-    "M\u00fcller": {
+    "Müller": {
       "Mo": {
         "Gym": "",
         "Food": "",
@@ -1872,7 +1875,7 @@
         "Fehler": ""
       }
     },
-    "M\u00fcller": {
+    "Müller": {
       "Mo": {
         "Gym": "",
         "Food": "",
@@ -2153,288 +2156,7 @@
         "Fehler": ""
       }
     },
-    "M\u00fcller": {
-      "Mo": {
-        "Gym": "",
-        "Food": "",
-        "Saps": "",
-        "Sleep": "",
-        "Study": "",
-        "Steps": "",
-        "Hausarbeit": "",
-        "Work": "",
-        "Recovery": "",
-        "Podcast/Read": "",
-        "Fehler": ""
-      },
-      "Di": {
-        "Gym": "",
-        "Food": "",
-        "Saps": "",
-        "Sleep": "",
-        "Study": "",
-        "Steps": "",
-        "Hausarbeit": "",
-        "Work": "",
-        "Recovery": "",
-        "Podcast/Read": "",
-        "Fehler": ""
-      },
-      "Mi": {
-        "Gym": "",
-        "Food": "",
-        "Saps": "",
-        "Sleep": "",
-        "Study": "",
-        "Steps": "",
-        "Hausarbeit": "",
-        "Work": "",
-        "Recovery": "",
-        "Podcast/Read": "",
-        "Fehler": ""
-      },
-      "Do": {
-        "Gym": "",
-        "Food": "",
-        "Saps": "",
-        "Sleep": "",
-        "Study": "",
-        "Steps": "",
-        "Hausarbeit": "",
-        "Work": "",
-        "Recovery": "",
-        "Podcast/Read": "",
-        "Fehler": ""
-      },
-      "Fr": {
-        "Gym": "",
-        "Food": "",
-        "Saps": "",
-        "Sleep": "",
-        "Study": "",
-        "Steps": "",
-        "Hausarbeit": "",
-        "Work": "",
-        "Recovery": "",
-        "Podcast/Read": "",
-        "Fehler": ""
-      },
-      "Sa": {
-        "Gym": "",
-        "Food": "",
-        "Saps": "",
-        "Sleep": "",
-        "Study": "",
-        "Steps": "",
-        "Hausarbeit": "",
-        "Work": "",
-        "Recovery": "",
-        "Podcast/Read": "",
-        "Fehler": ""
-      },
-      "So": {
-        "Gym": "",
-        "Food": "",
-        "Saps": "",
-        "Sleep": "",
-        "Study": "",
-        "Steps": "",
-        "Hausarbeit": "",
-        "Work": "",
-        "Recovery": "",
-        "Podcast/Read": "",
-        "Fehler": ""
-      }
-    }
-  },
-  "KW38": {
-    "David": {
-      "Mo": {
-        "Gym": "",
-        "Food": "",
-        "Saps": "",
-        "Sleep": "",
-        "Study": "",
-        "Steps": "",
-        "Hausarbeit": "",
-        "Work": "",
-        "Recovery": "",
-        "Podcast/Read": "",
-        "Fehler": ""
-      },
-      "Di": {
-        "Gym": "0",
-        "Food": "1",
-        "Saps": "1",
-        "Sleep": "7",
-        "Study": "4",
-        "Steps": "",
-        "Hausarbeit": "",
-        "Work": "",
-        "Recovery": "",
-        "Podcast/Read": "",
-        "Fehler": ""
-      },
-      "Mi": {
-        "Gym": "",
-        "Food": "",
-        "Saps": "",
-        "Sleep": "",
-        "Study": "",
-        "Steps": "",
-        "Hausarbeit": "",
-        "Work": "",
-        "Recovery": "",
-        "Podcast/Read": "",
-        "Fehler": ""
-      },
-      "Do": {
-        "Gym": "",
-        "Food": "",
-        "Saps": "",
-        "Sleep": "",
-        "Study": "",
-        "Steps": "",
-        "Hausarbeit": "",
-        "Work": "",
-        "Recovery": "",
-        "Podcast/Read": "",
-        "Fehler": ""
-      },
-      "Fr": {
-        "Gym": "",
-        "Food": "",
-        "Saps": "",
-        "Sleep": "",
-        "Study": "",
-        "Steps": "",
-        "Hausarbeit": "",
-        "Work": "",
-        "Recovery": "",
-        "Podcast/Read": "",
-        "Fehler": ""
-      },
-      "Sa": {
-        "Gym": "",
-        "Food": "",
-        "Saps": "",
-        "Sleep": "",
-        "Study": "",
-        "Steps": "",
-        "Hausarbeit": "",
-        "Work": "",
-        "Recovery": "",
-        "Podcast/Read": "",
-        "Fehler": ""
-      },
-      "So": {
-        "Gym": "",
-        "Food": "",
-        "Saps": "",
-        "Sleep": "",
-        "Study": "",
-        "Steps": "",
-        "Hausarbeit": "",
-        "Work": "",
-        "Recovery": "",
-        "Podcast/Read": "",
-        "Fehler": ""
-      }
-    },
-    "Cedric": {
-      "Mo": {
-        "Gym": "",
-        "Food": "",
-        "Saps": "",
-        "Sleep": "",
-        "Study": "",
-        "Steps": "",
-        "Hausarbeit": "",
-        "Work": "",
-        "Recovery": "",
-        "Podcast/Read": "",
-        "Fehler": ""
-      },
-      "Di": {
-        "Gym": "",
-        "Food": "",
-        "Saps": "",
-        "Sleep": "",
-        "Study": "",
-        "Steps": "",
-        "Hausarbeit": "",
-        "Work": "",
-        "Recovery": "",
-        "Podcast/Read": "",
-        "Fehler": ""
-      },
-      "Mi": {
-        "Gym": "",
-        "Food": "",
-        "Saps": "",
-        "Sleep": "",
-        "Study": "",
-        "Steps": "",
-        "Hausarbeit": "",
-        "Work": "",
-        "Recovery": "",
-        "Podcast/Read": "",
-        "Fehler": ""
-      },
-      "Do": {
-        "Gym": "",
-        "Food": "",
-        "Saps": "",
-        "Sleep": "",
-        "Study": "",
-        "Steps": "",
-        "Hausarbeit": "",
-        "Work": "",
-        "Recovery": "",
-        "Podcast/Read": "",
-        "Fehler": ""
-      },
-      "Fr": {
-        "Gym": "",
-        "Food": "",
-        "Saps": "",
-        "Sleep": "",
-        "Study": "",
-        "Steps": "",
-        "Hausarbeit": "",
-        "Work": "",
-        "Recovery": "",
-        "Podcast/Read": "",
-        "Fehler": ""
-      },
-      "Sa": {
-        "Gym": "",
-        "Food": "",
-        "Saps": "",
-        "Sleep": "",
-        "Study": "",
-        "Steps": "",
-        "Hausarbeit": "",
-        "Work": "",
-        "Recovery": "",
-        "Podcast/Read": "",
-        "Fehler": ""
-      },
-      "So": {
-        "Gym": "",
-        "Food": "",
-        "Saps": "",
-        "Sleep": "",
-        "Study": "",
-        "Steps": "",
-        "Hausarbeit": "",
-        "Work": "",
-        "Recovery": "",
-        "Podcast/Read": "",
-        "Fehler": ""
-      }
-    },
-    "M\u00fcller": {
+    "Müller": {
       "Mo": {
         "Gym": "",
         "Food": "",

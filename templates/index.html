@@ -98,6 +98,39 @@
                     </div>
                 </a>
                 {% endfor %}
+
+                <!-- Neue KW erstellen Button -->
+                <div class="week-card add-week-card" onclick="showAddWeekModal()">
+                    <div class="week-card-icon add-icon">
+                        <i class="fas fa-plus"></i>
+                    </div>
+                    <h3>Neue KW</h3>
+                    <p>Kalenderwoche hinzufügen</p>
+                    <div class="week-card-arrow">
+                        <i class="fas fa-plus-circle"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal für neue KW -->
+            <div id="addWeekModal" class="modal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2><i class="fas fa-calendar-plus"></i> Neue Kalenderwoche erstellen</h2>
+                        <span class="close" onclick="hideAddWeekModal()">&times;</span>
+                    </div>
+                    <div class="modal-body">
+                        <p>Gib die Kalenderwoche ein, die du hinzufügen möchtest:</p>
+                        <div class="input-group">
+                            <label for="newWeekNumber">KW Nummer:</label>
+                            <input type="number" id="newWeekNumber" min="1" max="53" placeholder="z.B. 47">
+                        </div>
+                        <div class="modal-buttons">
+                            <button class="btn-cancel" onclick="hideAddWeekModal()">Abbrechen</button>
+                            <button class="btn-create" onclick="createNewWeek()">KW erstellen</button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </section>
 
@@ -528,6 +561,86 @@
                 `).join('');
             }
         }
+
+        // Modal functions for new week creation
+        function showAddWeekModal() {
+            document.getElementById('addWeekModal').style.display = 'block';
+            document.getElementById('newWeekNumber').focus();
+        }
+
+        function hideAddWeekModal() {
+            document.getElementById('addWeekModal').style.display = 'none';
+            document.getElementById('newWeekNumber').value = '';
+        }
+
+        function createNewWeek() {
+            const weekNumber = document.getElementById('newWeekNumber').value;
+
+            if (!weekNumber) {
+                alert('Bitte gib eine Wochennummer ein!');
+                return;
+            }
+
+            const weekNum = parseInt(weekNumber);
+            if (weekNum < 1 || weekNum > 53) {
+                alert('Wochennummer muss zwischen 1 und 53 liegen!');
+                return;
+            }
+
+            // Disable button während der Anfrage
+            const createBtn = document.querySelector('.btn-create');
+            const originalText = createBtn.textContent;
+            createBtn.disabled = true;
+            createBtn.textContent = 'Erstelle...';
+
+            fetch('/api/create-week', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    week_number: weekNum
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    hideAddWeekModal();
+                    // Kurze Bestätigung anzeigen
+                    alert(`✅ ${data.message}!\n\nDu wirst jetzt zur neuen Woche weitergeleitet.`);
+                    // Weiterleiten zur neuen Woche
+                    window.location.href = data.redirect_url;
+                } else {
+                    alert(`❌ Fehler: ${data.error}`);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('❌ Ein Fehler ist aufgetreten beim Erstellen der Woche.');
+            })
+            .finally(() => {
+                // Button wieder aktivieren
+                createBtn.disabled = false;
+                createBtn.textContent = originalText;
+            });
+        }
+
+        // Modal schließen bei Klick außerhalb
+        window.onclick = function(event) {
+            const modal = document.getElementById('addWeekModal');
+            if (event.target === modal) {
+                hideAddWeekModal();
+            }
+        }
+
+        // Enter-Taste im Input-Feld
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('newWeekNumber').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    createNewWeek();
+                }
+            });
+        });
     </script>
 </body>
 </html>

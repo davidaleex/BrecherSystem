@@ -2,7 +2,7 @@ from flask import Flask, render_template, request, jsonify, redirect, url_for, s
 import json
 import os
 from datetime import datetime
-from database import get_all_data as db_get_all_data, save_data as db_save_data, get_week_data, update_entry, init_database, get_database_stats
+from database import get_all_data as db_get_all_data, save_data as db_save_data, get_week_data, update_entry, init_database, get_database_stats, get_all_weeks
 
 app = Flask(__name__)
 app.secret_key = 'brecher_system_secret_key_2025'  # Für Sessions
@@ -14,10 +14,14 @@ WEBSITE_PASSWORD = 'AlphaBrecher'
 NAMES = ['David', 'Cedric', 'Müller']
 CATEGORIES = ['Gym', 'Food', 'Saps', 'Sleep', 'Study', 'Steps', 'Hausarbeit', 'Work', 'Recovery', 'Podcast/Read', 'Fehler', 'Fasten', 'Cold Plunge', 'Organisatorisches']
 DAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']
-WEEKS = list(range(39, 47))  # KW 39-46
+# get_weeks_list() wird jetzt dynamisch aus der Datenbank geladen
 
 # Datenstruktur - jetzt aus der Datenbank
 data_store = {}
+
+def get_weeks_list():
+    """Hole verfügbare Wochen aus der Datenbank"""
+    return get_all_weeks()
 
 def initialize_data():
     """Initialisiere Datenbank und lade Daten"""
@@ -25,8 +29,9 @@ def initialize_data():
     init_database()
     data_store = db_get_all_data()
 
-    # Sicherstellen, dass alle Wochen existieren
-    for week in WEEKS:
+    # Sicherstellen, dass alle Wochen aus der DB existieren
+    available_weeks = get_weeks_list()
+    for week in available_weeks:
         week_key = f'KW{week}'
         if week_key not in data_store:
             data_store[week_key] = {}
@@ -228,7 +233,7 @@ def get_monthly_scoreboard():
     """Erstelle Monats-Scoreboard (alle Wochen zusammen)"""
     monthly_scores = {person: 0 for person in NAMES}
 
-    for week in WEEKS:
+    for week in get_weeks_list():
         week_key = f'KW{week}'
         for person in NAMES:
             monthly_scores[person] += calculate_weekly_total(person, week_key)
@@ -244,7 +249,7 @@ def get_total_scoreboard():
 def get_weekly_overview():
     """Erstelle Übersicht aller Wochen für Hauptseite"""
     overview = []
-    for week in WEEKS:
+    for week in get_weeks_list():
         week_key = f'KW{week}'
         week_scores = get_weekly_scoreboard(week_key)
 
@@ -279,7 +284,7 @@ def get_category_data_for_charts():
         }
 
         # Für jede Woche die Kategorie-Punkte sammeln
-        for week in WEEKS:
+        for week in get_weeks_list():
             week_key = f'KW{week}'
             category_data[category]['weeks'].append(f'KW{week}')
 
@@ -303,8 +308,8 @@ def get_current_week_number():
     from datetime import datetime
     current_week = datetime.now().isocalendar()[1]
     # Falls aktuelle Woche nicht in unserem System ist, nimm die letzte
-    if current_week not in WEEKS:
-        return WEEKS[-1]
+    if current_week not in get_weeks_list():
+        return get_weeks_list()[-1]
     return current_week
 
 def get_current_week_leaders():
@@ -409,7 +414,7 @@ def index():
     daily_stats, _ = get_daily_statistics()
 
     return render_template('index.html',
-                         weeks=WEEKS,
+                         weeks=get_weeks_list(),
                          weekly_overview=weekly_overview,
                          monthly_scoreboard=monthly_scoreboard,
                          total_scoreboard=total_scoreboard,
@@ -588,6 +593,53 @@ def database_stats():
     if not require_auth():
         return jsonify({'error': 'Authentication required'}), 401
     return jsonify(get_database_stats())
+
+@app.route('/api/create-week', methods=['POST'])
+def create_week():
+    """Erstelle eine neue Kalenderwoche"""
+    if not require_auth():
+        return jsonify({'error': 'Authentication required'}), 401
+
+    data = request.json
+    week_number = data.get('week_number')
+
+    # Validierung
+    if not week_number:
+        return jsonify({'error': 'Wochennummer ist erforderlich'}), 400
+
+    try:
+        week_number = int(week_number)
+        if week_number < 1 or week_number > 53:
+            return jsonify({'error': 'Wochennummer muss zwischen 1 und 53 liegen'}), 400
+    except ValueError:
+        return jsonify({'error': 'Ungültige Wochennummer'}), 400
+
+    week_key = f'KW{week_number}'
+
+    # Prüfen ob Woche bereits existiert
+    if week_key in data_store:
+        return jsonify({'error': f'KW{week_number} existiert bereits'}), 400
+
+    # Neue Woche erstellen
+    data_store[week_key] = {}
+    for person in NAMES:
+        data_store[week_key][person] = {}
+        for day in DAYS:
+            data_store[week_key][person][day] = {}
+            for category in CATEGORIES:
+                data_store[week_key][person][day][category] = ''
+                # Speichere leeren Eintrag in der Datenbank
+                update_entry(week_key, person, day, category, '')
+
+    # Neue Woche ist jetzt in der Datenbank verfügbar
+    # get_weeks_list() wird sie automatisch beim nächsten Aufruf finden
+
+    return jsonify({
+        'success': True,
+        'message': f'KW{week_number} wurde erfolgreich erstellt',
+        'week_number': week_number,
+        'redirect_url': f'/week/{week_number}'
+    })
 
 if __name__ == '__main__':
     print("🚀 Starting BrecherSystem with SQLite Database...")
