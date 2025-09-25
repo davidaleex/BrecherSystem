@@ -1,9 +1,13 @@
-from flask import Flask, render_template, request, jsonify, redirect, url_for
+from flask import Flask, render_template, request, jsonify, redirect, url_for, session
 import json
 import os
 from datetime import datetime
 
 app = Flask(__name__)
+app.secret_key = 'brecher_system_secret_key_2025'  # Für Sessions
+
+# Passwort für die Website
+WEBSITE_PASSWORD = 'AlphaBrecher'
 
 # BrecherSystem Konfiguration
 NAMES = ['David', 'Cedric', 'Müller']
@@ -305,9 +309,35 @@ def get_current_week_leaders():
 
     return leaders
 
+def require_auth():
+    """Prüfe ob Benutzer eingeloggt ist"""
+    return session.get('authenticated', False)
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    """Login-Seite"""
+    if request.method == 'POST':
+        password = request.form.get('password')
+        if password == WEBSITE_PASSWORD:
+            session['authenticated'] = True
+            return redirect(url_for('index'))
+        else:
+            return render_template('login.html', error='Falsches Passwort!')
+
+    return render_template('login.html')
+
+@app.route('/logout')
+def logout():
+    """Logout-Funktion"""
+    session.pop('authenticated', None)
+    return redirect(url_for('login'))
+
 @app.route('/')
 def index():
     """Hauptseite mit Wochenübersicht"""
+    if not require_auth():
+        return redirect(url_for('login'))
+
     weekly_overview = get_weekly_overview()
     monthly_scoreboard = get_monthly_scoreboard()
     total_scoreboard = get_total_scoreboard()
@@ -321,6 +351,9 @@ def index():
 @app.route('/api/chart-data')
 def chart_data():
     """API Endpoint für Chart-Daten"""
+    if not require_auth():
+        return jsonify({'error': 'Authentication required'}), 401
+
     category_data = get_category_data_for_charts()
     current_leaders = get_current_week_leaders()
 
@@ -332,6 +365,9 @@ def chart_data():
 @app.route('/week/<int:week_num>')
 def week_view(week_num):
     """Ansicht für eine spezifische Woche"""
+    if not require_auth():
+        return redirect(url_for('login'))
+
     week_key = f'KW{week_num}'
 
     if week_key not in data_store:
@@ -380,6 +416,9 @@ def week_view(week_num):
 @app.route('/update_cell', methods=['POST'])
 def update_cell():
     """Update einer einzelnen Zelle"""
+    if not require_auth():
+        return jsonify({'error': 'Authentication required'}), 401
+
     data = request.json
     week = data.get('week')
     person = data.get('person')
@@ -426,11 +465,15 @@ def update_cell():
 @app.route('/api/data')
 def get_all_data():
     """API Endpoint für alle Daten"""
+    if not require_auth():
+        return jsonify({'error': 'Authentication required'}), 401
     return jsonify(data_store)
 
 @app.route('/api/save', methods=['POST'])
 def save_data():
     """Speichere Daten in JSON-Datei"""
+    if not require_auth():
+        return jsonify({'error': 'Authentication required'}), 401
     try:
         with open('brecher_data.json', 'w') as f:
             json.dump(data_store, f, indent=2)
@@ -441,6 +484,8 @@ def save_data():
 @app.route('/api/load', methods=['POST'])
 def load_data():
     """Lade Daten aus JSON-Datei"""
+    if not require_auth():
+        return jsonify({'error': 'Authentication required'}), 401
     try:
         if os.path.exists('brecher_data.json'):
             with open('brecher_data.json', 'r') as f:

@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BrecherSystem - Login</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .login-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .login-box {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            padding: 3rem;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            text-align: center;
+            min-width: 400px;
+        }
+
+        .login-title {
+            font-size: 2.5rem;
+            color: #4472c4;
+            margin-bottom: 2rem;
+            font-weight: 700;
+        }
+
+        .login-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .password-input {
+            padding: 1rem;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        .password-input:focus {
+            outline: none;
+            border-color: #4472c4;
+            background: white;
+        }
+
+        .login-button {
+            background: linear-gradient(135deg, #4472c4 0%, #5a67d8 100%);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .login-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(68, 114, 196, 0.3);
+        }
+
+        .error-message {
+            color: #e53e3e;
+            font-weight: 600;
+            margin-top: 1rem;
+            padding: 0.5rem;
+            background: rgba(229, 62, 62, 0.1);
+            border-radius: 8px;
+        }
+
+        .login-subtitle {
+            color: #666;
+            margin-bottom: 2rem;
+            font-size: 1.1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-box">
+            <h1 class="login-title">🏋️ BRECHERSYSTEM</h1>
+            <p class="login-subtitle">Passwort eingeben um fortzufahren</p>
+            
+            <form method="POST" class="login-form">
+                <input type="password" 
+                       name="password" 
+                       placeholder="Passwort eingeben..." 
+                       class="password-input"
+                       required
+                       autofocus>
+                
+                <button type="submit" class="login-button">
+                    🔓 Anmelden
+                </button>
+            </form>
+            
+            {% if error %}
+            <div class="error-message">{{ error }}</div>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>
