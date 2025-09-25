@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, jsonify, redirect, url_for, s
 import json
 import os
 from datetime import datetime
+from database import get_all_data as db_get_all_data, save_data as db_save_data, get_week_data, update_entry, init_database, get_database_stats
 
 app = Flask(__name__)
 app.secret_key = 'brecher_system_secret_key_2025'  # Für Sessions
@@ -15,19 +16,29 @@ CATEGORIES = ['Gym', 'Food', 'Saps', 'Sleep', 'Study', 'Steps', 'Hausarbeit', 'W
 DAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']
 WEEKS = list(range(39, 47))  # KW 39-46
 
-# Datenstruktur für alle Wochen
+# Datenstruktur - jetzt aus der Datenbank
 data_store = {}
 
 def initialize_data():
-    """Initialisiere Datenstruktur für alle Wochen"""
+    """Initialisiere Datenbank und lade Daten"""
+    global data_store
+    init_database()
+    data_store = db_get_all_data()
+
+    # Sicherstellen, dass alle Wochen existieren
     for week in WEEKS:
-        data_store[f'KW{week}'] = {
-            person: {
-                day: {cat: '' for cat in CATEGORIES}
-                for day in DAYS
-            }
-            for person in NAMES
-        }
+        week_key = f'KW{week}'
+        if week_key not in data_store:
+            data_store[week_key] = {}
+        for person in NAMES:
+            if person not in data_store[week_key]:
+                data_store[week_key][person] = {}
+            for day in DAYS:
+                if day not in data_store[week_key][person]:
+                    data_store[week_key][person][day] = {}
+                for cat in CATEGORIES:
+                    if cat not in data_store[week_key][person][day]:
+                        data_store[week_key][person][day][cat] = ''
 
 def calculate_points(category, value):
     """Berechne Punkte basierend auf Kategorie und Wert (genau wie im Excel)"""
@@ -521,6 +532,9 @@ def update_cell():
 
     data_store[week][person][day][category] = value
 
+    # Speichere auch in der Datenbank
+    update_entry(week, person, day, category, value)
+
     # Berechne neue Werte
     points = calculate_points(category, value)
     color = get_cell_color(category, value)
@@ -539,7 +553,7 @@ def update_cell():
     })
 
 @app.route('/api/data')
-def get_all_data():
+def get_all_data_api():
     """API Endpoint für alle Daten"""
     if not require_auth():
         return jsonify({'error': 'Authentication required'}), 401
@@ -547,40 +561,41 @@ def get_all_data():
 
 @app.route('/api/save', methods=['POST'])
 def save_data():
-    """Speichere Daten in JSON-Datei"""
+    """Speichere Daten in SQLite-Datenbank"""
     if not require_auth():
         return jsonify({'error': 'Authentication required'}), 401
     try:
-        with open('brecher_data.json', 'w') as f:
-            json.dump(data_store, f, indent=2)
-        return jsonify({'success': True})
+        records_saved = db_save_data(data_store)
+        return jsonify({'success': True, 'records_saved': records_saved})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/load', methods=['POST'])
 def load_data():
-    """Lade Daten aus JSON-Datei"""
+    """Lade Daten aus SQLite-Datenbank"""
     if not require_auth():
         return jsonify({'error': 'Authentication required'}), 401
     try:
-        if os.path.exists('brecher_data.json'):
-            with open('brecher_data.json', 'r') as f:
-                loaded_data = json.load(f)
-                data_store.update(loaded_data)
+        global data_store
+        data_store = db_get_all_data()
         return jsonify({'success': True})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/database/stats')
+def database_stats():
+    """API Endpoint für Datenbankstatistiken"""
+    if not require_auth():
+        return jsonify({'error': 'Authentication required'}), 401
+    return jsonify(get_database_stats())
+
 if __name__ == '__main__':
+    print("🚀 Starting BrecherSystem with SQLite Database...")
     initialize_data()
 
-    # Lade gespeicherte Daten falls vorhanden
-    if os.path.exists('brecher_data.json'):
-        try:
-            with open('brecher_data.json', 'r') as f:
-                data_store.update(json.load(f))
-        except:
-            pass
+    # Show database stats
+    stats = get_database_stats()
+    print(f"📊 Database loaded: {stats['total_records']} records, {stats['total_weeks']} weeks")
 
     # Starte Server auf allen Netzwerk-Interfaces
     port = int(os.environ.get('PORT', 8080))
