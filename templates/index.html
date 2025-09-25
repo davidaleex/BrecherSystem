@@ -52,6 +52,57 @@
                 <p>Aktuelle Standings und Übersicht</p>
             </div>
 
+            <!-- Current Week Leaderboard - TOP PRIORITY -->
+            <div class="current-week-hero">
+                <div class="hero-scoreboard">
+                    <h2 class="hero-title">🏆 LEADERBOARD KW {{ current_week_num }}</h2>
+                    <div class="hero-podium">
+                        {% for person, score in current_week_scoreboard[:3] %}
+                        <div class="podium-place place-{{ loop.index }}">
+                            <div class="podium-person">
+                                {% if loop.index == 1 %}
+                                <div class="crown">👑</div>
+                                <div class="trophy">🥇</div>
+                                {% elif loop.index == 2 %}
+                                <div class="trophy">🥈</div>
+                                {% else %}
+                                <div class="trophy">🥉</div>
+                                {% endif %}
+                                <div class="person-name">{{ person }}</div>
+                                <div class="person-score">{{ score }} Punkte</div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Daily Stats Sidebar -->
+                    <div class="daily-stats-sidebar">
+                        <h3>📊 Tägliche Leistung - KW {{ current_week_num }}</h3>
+                        <div class="stats-controls">
+                            <button class="stat-btn active" onclick="switchView('daily')">Tag</button>
+                            <button class="stat-btn" onclick="switchView('weekly')">Woche</button>
+                            <button class="stat-btn" onclick="switchView('monthly')">Monat</button>
+                        </div>
+                        <div id="stats-content" class="stats-content">
+                            {% for day in ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'] %}
+                            <div class="day-stat">
+                                <div class="day-name">{{ day }}</div>
+                                <div class="day-rankings">
+                                    {% for person, score in daily_stats[day]['ranking'] %}
+                                    <div class="person-rank">
+                                        <span class="rank">{{ loop.index }}.</span>
+                                        <span class="name">{{ person }}</span>
+                                        <span class="points">{{ score }}p</span>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         <!-- Scoreboards Section -->
         <div class="scoreboards-section">
             <div class="scoreboard-container">
@@ -538,6 +589,49 @@
             // Load charts when page loads
             loadCharts();
         });
+
+        // Statistics view switching
+        function switchView(viewType) {
+            // Update active button
+            document.querySelectorAll('.stat-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
+            // Fetch and display new data
+            fetch(`/api/statistics/${viewType}`)
+                .then(response => response.json())
+                .then(data => {
+                    updateStatsContent(data);
+                })
+                .catch(error => {
+                    console.error('Error fetching statistics:', error);
+                });
+        }
+
+        function updateStatsContent(data) {
+            const statsContent = document.getElementById('stats-content');
+
+            if (data.type === 'daily') {
+                // Daily view already loaded, do nothing
+                return;
+            } else if (data.type === 'weekly') {
+                statsContent.innerHTML = data.stats.map(week => `
+                    <div class="week-stat">
+                        <div class="week-name">KW${week.week}</div>
+                        <div class="week-winner">
+                            ${week.winner ? `🏆 ${week.winner[0]} (${week.winner[1]}p)` : 'Kein Gewinner'}
+                        </div>
+                    </div>
+                `).join('');
+            } else if (data.type === 'monthly') {
+                statsContent.innerHTML = data.stats.map((person, index) => `
+                    <div class="monthly-stat">
+                        <div class="monthly-rank">${index + 1}.</div>
+                        <div class="monthly-name">${person[0]}</div>
+                        <div class="monthly-score">${person[1]}p</div>
+                    </div>
+                `).join('');
+            }
+        }
     </script>
 </body>
 </html>

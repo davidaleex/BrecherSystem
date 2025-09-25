@@ -11,7 +11,7 @@ WEBSITE_PASSWORD = 'AlphaBrecher'
 
 # BrecherSystem Konfiguration
 NAMES = ['David', 'Cedric', 'Müller']
-CATEGORIES = ['Gym', 'Food', 'Saps', 'Sleep', 'Study', 'Steps', 'Hausarbeit', 'Work', 'Recovery', 'Podcast/Read', 'Fehler']
+CATEGORIES = ['Gym', 'Food', 'Saps', 'Sleep', 'Study', 'Steps', 'Hausarbeit', 'Work', 'Recovery', 'Podcast/Read', 'Fehler', 'Cold Shower', 'Fasten']
 DAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']
 WEEKS = list(range(39, 47))  # KW 39-46
 
@@ -75,6 +75,10 @@ def calculate_points(category, value):
         return min(val * 2, 6)
     elif category == 'Fehler':
         return val * -2
+    elif category == 'Cold Shower':
+        return 1 if val > 0 else 0  # 1 eingetragen = 1 Punkt
+    elif category == 'Fasten':
+        return 2 if val > 0 else 0  # 1 eingetragen = 2 Punkte
 
     return 0
 
@@ -133,6 +137,14 @@ def get_cell_color(category, value, person=None, day=None, week=None):
         # Spezielle Behandlung für Recovery
         if val == 0: return 'darkgreen'  # Dark green für Rest Day (0)
         else: return 'red'  # Alles andere ist ungültig
+    elif category == 'Cold Shower':
+        # Nur grün oder rot - 1=grün, 0/leer=rot
+        if val >= 1: return 'green'
+        else: return 'red'
+    elif category == 'Fasten':
+        # Nur grün oder rot - 1=grün, 0/leer=rot
+        if val >= 1: return 'green'
+        else: return 'red'
 
     return 'white'
 
@@ -268,10 +280,18 @@ def get_category_data_for_charts():
 
     return category_data
 
+def get_current_week_number():
+    """Bestimme aktuelle Kalenderwoche"""
+    from datetime import datetime
+    current_week = datetime.now().isocalendar()[1]
+    # Falls aktuelle Woche nicht in unserem System ist, nimm die letzte
+    if current_week not in WEEKS:
+        return WEEKS[-1]
+    return current_week
+
 def get_current_week_leaders():
     """Finde Führende in aktueller Woche pro Kategorie"""
-    # Nimm letzte Woche als "aktuelle" (KW46 in unserem Fall)
-    current_week = WEEKS[-1]
+    current_week = get_current_week_number()
     week_key = f'KW{current_week}'
 
     leaders = {}
@@ -309,6 +329,32 @@ def get_current_week_leaders():
 
     return leaders
 
+def get_current_week_scoreboard():
+    """Erstelle Leaderboard für aktuelle Woche"""
+    current_week = get_current_week_number()
+    week_key = f'KW{current_week}'
+    return get_weekly_scoreboard(week_key), current_week
+
+def get_daily_statistics(week_num=None):
+    """Erstelle tägliche Statistiken für eine Woche"""
+    if week_num is None:
+        week_num = get_current_week_number()
+
+    week_key = f'KW{week_num}'
+    daily_stats = {}
+
+    for day in DAYS:
+        daily_stats[day] = {}
+        for person in NAMES:
+            daily_total = calculate_daily_total(person, day, week_key)
+            daily_stats[day][person] = daily_total
+
+        # Sortiere nach Punkten für den Tag
+        day_ranking = sorted(daily_stats[day].items(), key=lambda x: x[1], reverse=True)
+        daily_stats[day]['ranking'] = day_ranking
+
+    return daily_stats, week_num
+
 def require_auth():
     """Prüfe ob Benutzer eingeloggt ist"""
     return session.get('authenticated', False)
@@ -341,12 +387,17 @@ def index():
     weekly_overview = get_weekly_overview()
     monthly_scoreboard = get_monthly_scoreboard()
     total_scoreboard = get_total_scoreboard()
+    current_week_scoreboard, current_week_num = get_current_week_scoreboard()
+    daily_stats, _ = get_daily_statistics()
 
     return render_template('index.html',
                          weeks=WEEKS,
                          weekly_overview=weekly_overview,
                          monthly_scoreboard=monthly_scoreboard,
-                         total_scoreboard=total_scoreboard)
+                         total_scoreboard=total_scoreboard,
+                         current_week_scoreboard=current_week_scoreboard,
+                         current_week_num=current_week_num,
+                         daily_stats=daily_stats)
 
 @app.route('/api/chart-data')
 def chart_data():
@@ -361,6 +412,24 @@ def chart_data():
         'category_data': category_data,
         'current_leaders': current_leaders
     })
+
+@app.route('/api/statistics/<view_type>')
+def statistics_data(view_type):
+    """API für verschiedene Statistik-Ansichten"""
+    if not require_auth():
+        return jsonify({'error': 'Authentication required'}), 401
+
+    if view_type == 'daily':
+        stats, week_num = get_daily_statistics()
+        return jsonify({'stats': stats, 'week_num': week_num, 'type': 'daily'})
+    elif view_type == 'weekly':
+        weekly_overview = get_weekly_overview()
+        return jsonify({'stats': weekly_overview, 'type': 'weekly'})
+    elif view_type == 'monthly':
+        monthly_scoreboard = get_monthly_scoreboard()
+        return jsonify({'stats': monthly_scoreboard, 'type': 'monthly'})
+    else:
+        return jsonify({'error': 'Invalid view type'}), 400
 
 @app.route('/week/<int:week_num>')
 def week_view(week_num):
