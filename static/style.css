@@ -659,14 +659,14 @@ header p {
 /* Week Grid for Overview */
 .week-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 1.5rem;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
     margin-bottom: 3rem;
 }
 
 .week-card {
     background: white;
-    padding: 2rem;
+    padding: 2.5rem;
     border-radius: 15px;
     text-decoration: none;
     color: #333;
@@ -675,6 +675,10 @@ header p {
     box-shadow: 0 8px 25px rgba(0,0,0,0.1);
     position: relative;
     overflow: hidden;
+    min-height: 180px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 
 .week-card::before {
@@ -786,8 +790,13 @@ th {
 
 .category-header {
     background: #4472c4;
-    font-size: 0.8rem;
-    min-width: 80px;
+    font-size: 0.6rem;
+    min-width: 100px;
+    max-width: 100px;
+    padding: 6px 2px;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    line-height: 1.1;
 }
 
 .day-header, .total-header {
@@ -811,8 +820,9 @@ td {
 .data-cell {
     position: relative;
     padding: 0;
-    width: 80px;
-    height: 60px;
+    width: 100px;
+    height: 50px;
+    max-width: 100px;
 }
 
 .cell-input {
@@ -820,10 +830,10 @@ td {
     height: 100%;
     border: none;
     text-align: center;
-    font-size: 14px;
+    font-size: 11px;
     font-weight: bold;
     background: transparent;
-    padding-top: 20px;
+    padding-top: 15px;
 }
 
 .points {
@@ -867,8 +877,9 @@ td {
 
 .hero-scoreboard {
     display: flex;
-    gap: 3rem;
-    align-items: flex-start;
+    flex-direction: column;
+    gap: 2rem;
+    align-items: center;
 }
 
 .hero-title {
@@ -881,12 +892,12 @@ td {
 }
 
 .hero-podium {
-    flex: 2;
     display: flex;
     justify-content: center;
     align-items: flex-end;
     gap: 2rem;
-    min-height: 300px;
+    min-height: 250px;
+    width: 100%;
 }
 
 .podium-place {
@@ -1340,7 +1351,7 @@ footer {
     }
 
     table {
-        min-width: 1000px;
+        min-width: 1200px;
     }
 
     .week-header {
@@ -1414,7 +1425,7 @@ footer {
     }
 
     table {
-        min-width: 1000px;
+        min-width: 1200px;
     }
 }
 

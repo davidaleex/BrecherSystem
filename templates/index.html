@@ -54,106 +54,27 @@
 
             <!-- Current Week Leaderboard - TOP PRIORITY -->
             <div class="current-week-hero">
-                <div class="hero-scoreboard">
-                    <h2 class="hero-title">🏆 LEADERBOARD KW {{ current_week_num }}</h2>
-                    <div class="hero-podium">
-                        {% for person, score in current_week_scoreboard[:3] %}
-                        <div class="podium-place place-{{ loop.index }}">
-                            <div class="podium-person">
-                                {% if loop.index == 1 %}
-                                <div class="crown">👑</div>
-                                <div class="trophy">🥇</div>
-                                {% elif loop.index == 2 %}
-                                <div class="trophy">🥈</div>
-                                {% else %}
-                                <div class="trophy">🥉</div>
-                                {% endif %}
-                                <div class="person-name">{{ person }}</div>
-                                <div class="person-score">{{ score }} Punkte</div>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    </div>
-
-                    <!-- Daily Stats Sidebar -->
-                    <div class="daily-stats-sidebar">
-                        <h3>📊 Tägliche Leistung - KW {{ current_week_num }}</h3>
-                        <div class="stats-controls">
-                            <button class="stat-btn active" onclick="switchView('daily')">Tag</button>
-                            <button class="stat-btn" onclick="switchView('weekly')">Woche</button>
-                            <button class="stat-btn" onclick="switchView('monthly')">Monat</button>
-                        </div>
-                        <div id="stats-content" class="stats-content">
-                            {% for day in ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'] %}
-                            <div class="day-stat">
-                                <div class="day-name">{{ day }}</div>
-                                <div class="day-rankings">
-                                    {% for person, score in daily_stats[day]['ranking'] %}
-                                    <div class="person-rank">
-                                        <span class="rank">{{ loop.index }}.</span>
-                                        <span class="name">{{ person }}</span>
-                                        <span class="points">{{ score }}p</span>
-                                    </div>
-                                    {% endfor %}
-                                </div>
-                            </div>
-                            {% endfor %}
+                <h2 class="hero-title">🏆 LEADERBOARD KW {{ current_week_num }}</h2>
+                <div class="hero-podium">
+                    {% for person, score in current_week_scoreboard[:3] %}
+                    <div class="podium-place place-{{ loop.index }}">
+                        <div class="podium-person">
+                            {% if loop.index == 1 %}
+                            <div class="crown">👑</div>
+                            <div class="trophy">🥇</div>
+                            {% elif loop.index == 2 %}
+                            <div class="trophy">🥈</div>
+                            {% else %}
+                            <div class="trophy">🥉</div>
+                            {% endif %}
+                            <div class="person-name">{{ person }}</div>
+                            <div class="person-score">{{ score }} Punkte</div>
                         </div>
                     </div>
+                    {% endfor %}
                 </div>
             </div>
 
-        <!-- Scoreboards Section -->
-        <div class="scoreboards-section">
-            <div class="scoreboard-container">
-                <div class="scoreboard-card">
-                    <h2>🗓️ MONATS-SCOREBOARD</h2>
-                    <div class="score-list">
-                        {% for person, score in monthly_scoreboard %}
-                        <div class="score-item position-{{ loop.index }}">
-                            <span class="position">{{ loop.index }}.</span>
-                            <span class="name">{{ person }}</span>
-                            <span class="score">{{ score }} Punkte</span>
-                            {% if loop.index == 1 %}
-                            <span class="trophy">🥇</span>
-                            {% elif loop.index == 2 %}
-                            <span class="trophy">🥈</span>
-                            {% elif loop.index == 3 %}
-                            <span class="trophy">🥉</span>
-                            {% endif %}
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-
-                <div class="scoreboard-card">
-                    <h2>🏆 TOTAL-SCOREBOARD</h2>
-                    <div class="score-list">
-                        {% for person, score in total_scoreboard %}
-                        <div class="score-item position-{{ loop.index }}">
-                            <span class="position">{{ loop.index }}.</span>
-                            <span class="name">{{ person }}</span>
-                            <span class="score">{{ score }} Punkte</span>
-                            {% if loop.index == 1 %}
-                            <span class="trophy">🏆</span>
-                            {% elif loop.index == 2 %}
-                            <span class="trophy">🥈</span>
-                            {% elif loop.index == 3 %}
-                            <span class="trophy">🥉</span>
-                            {% endif %}
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-
-                <div class="scoreboard-card">
-                    <h2>🏅 WOCHENGEWINNER</h2>
-                    <div class="score-list" id="weekly-winners">
-                        <!-- Weekly winners werden mit JavaScript geladen -->
-                    </div>
-                </div>
-            </div>
-        </div>
 
         </section>
 

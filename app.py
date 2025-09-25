@@ -11,7 +11,7 @@ WEBSITE_PASSWORD = 'AlphaBrecher'
 
 # BrecherSystem Konfiguration
 NAMES = ['David', 'Cedric', 'Müller']
-CATEGORIES = ['Gym', 'Food', 'Saps', 'Sleep', 'Study', 'Steps', 'Hausarbeit', 'Work', 'Recovery', 'Podcast/Read', 'Fehler', 'Cold Shower', 'Fasten']
+CATEGORIES = ['Gym', 'Food', 'Saps', 'Sleep', 'Study', 'Steps', 'Hausarbeit', 'Work', 'Recovery', 'Podcast/Read', 'Fehler', 'Fasten', 'Cold Plunge', 'Organisatorisches']
 DAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']
 WEEKS = list(range(39, 47))  # KW 39-46
 
@@ -75,10 +75,12 @@ def calculate_points(category, value):
         return min(val * 2, 6)
     elif category == 'Fehler':
         return val * -2
-    elif category == 'Cold Shower':
-        return 1 if val > 0 else 0  # 1 eingetragen = 1 Punkt
     elif category == 'Fasten':
         return 2 if val > 0 else 0  # 1 eingetragen = 2 Punkte
+    elif category == 'Cold Plunge':
+        return 1 if val > 0 else 0  # 1 eingetragen = 1 Punkt
+    elif category == 'Organisatorisches':
+        return min(val, 2)  # Pro Stunde 1 Punkt, max 2
 
     return 0
 
@@ -137,13 +139,18 @@ def get_cell_color(category, value, person=None, day=None, week=None):
         # Spezielle Behandlung für Recovery
         if val == 0: return 'darkgreen'  # Dark green für Rest Day (0)
         else: return 'red'  # Alles andere ist ungültig
-    elif category == 'Cold Shower':
-        # Nur grün oder rot - 1=grün, 0/leer=rot
-        if val >= 1: return 'green'
-        else: return 'red'
     elif category == 'Fasten':
         # Nur grün oder rot - 1=grün, 0/leer=rot
         if val >= 1: return 'green'
+        else: return 'red'
+    elif category == 'Cold Plunge':
+        # Nur grün oder rot - 1=grün, 0/leer=rot
+        if val >= 1: return 'green'
+        else: return 'red'
+    elif category == 'Organisatorisches':
+        # Stunden: 2=grün, 1=orange, 0=rot
+        if val >= 2: return 'green'
+        elif val >= 1: return 'orange'
         else: return 'red'
 
     return 'white'
