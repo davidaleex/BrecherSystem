@@ -321,7 +321,19 @@
             document.getElementById(sectionId).classList.add('active');
 
             // Add active class to clicked nav link
-            event.target.classList.add('active');
+            if (event && event.target) {
+                event.target.classList.add('active');
+            } else {
+                // Fallback für programmatische Calls
+                document.querySelector(`[onclick="showSection('${sectionId}')"]`).classList.add('active');
+            }
+
+            // Reload charts when switching to stats section
+            if (sectionId === 'stats') {
+                setTimeout(() => {
+                    loadCharts();
+                }, 200);
+            }
         }
 
         // Mobile menu toggle
@@ -426,6 +438,20 @@
         }
 
         function loadCharts() {
+            // Check if we're in stats section and charts exist
+            const statsSection = document.getElementById('stats');
+            if (!statsSection || !statsSection.classList.contains('active')) {
+                return;
+            }
+
+            // Check if canvas elements exist
+            const canvasElements = ['gymChart', 'foodChart', 'sleepChart', 'studyChart', 'stepsChart', 'workChart'];
+            const missingElements = canvasElements.filter(id => !document.getElementById(id));
+            if (missingElements.length > 0) {
+                console.log('Charts not ready yet, canvas elements missing:', missingElements);
+                return;
+            }
+
             fetch('/api/chart-data')
                 .then(response => response.json())
                 .then(data => {
@@ -539,8 +565,13 @@
                 showSection(hash);
             }
 
-            // Load charts when page loads
-            loadCharts();
+            // Load charts only if we're on stats section
+            setTimeout(() => {
+                const currentSection = document.querySelector('.content-section.active');
+                if (currentSection && currentSection.id === 'stats') {
+                    loadCharts();
+                }
+            }, 200);
         });
 
         // Statistics view switching

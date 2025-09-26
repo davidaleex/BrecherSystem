@@ -290,12 +290,39 @@ def get_weekly_overview():
         })
     return overview
 
+def get_weeks_with_data():
+    """Gibt nur Wochen zurück, die tatsächlich Daten enthalten"""
+    weeks_with_data = []
+    for week in get_weeks_list():
+        week_key = f'KW{week}'
+        week_data = data_store.get(week_key, {})
+
+        # Prüfe ob mindestens eine Person Daten hat
+        has_data = False
+        for person in NAMES:
+            person_data = week_data.get(person, {})
+            for day in DAYS:
+                day_data = person_data.get(day, {})
+                if any(day_data.get(cat, '').strip() for cat in ['Gym', 'Food', 'Sleep', 'Study', 'Steps', 'Work'] if day_data.get(cat, '').strip()):
+                    has_data = True
+                    break
+            if has_data:
+                break
+
+        if has_data:
+            weeks_with_data.append(week)
+
+    return weeks_with_data
+
 def get_category_data_for_charts():
-    """Erstelle Kategorie-Daten für Charts"""
+    """Erstelle Kategorie-Daten für Charts - nur für Wochen mit Daten"""
     category_data = {}
 
     # Relevante Kategorien für Charts
     chart_categories = ['Gym', 'Food', 'Sleep', 'Study', 'Steps', 'Work']
+
+    # Nur Wochen mit tatsächlichen Daten verwenden
+    weeks_with_data = get_weeks_with_data()
 
     for category in chart_categories:
         category_data[category] = {
@@ -305,8 +332,8 @@ def get_category_data_for_charts():
             'Müller': []
         }
 
-        # Für jede Woche die Kategorie-Punkte sammeln
-        for week in get_weeks_list():
+        # Für jede Woche mit Daten die Kategorie-Punkte sammeln
+        for week in weeks_with_data:
             week_key = f'KW{week}'
             category_data[category]['weeks'].append(f'KW{week}')
 
