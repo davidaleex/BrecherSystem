@@ -38,8 +38,13 @@
                     </a>
                 </li>
             </ul>
-            <div class="nav-toggle" onclick="toggleMenu()">
-                <i class="fas fa-bars"></i>
+            <div class="nav-actions">
+                <div class="theme-toggle" onclick="toggleTheme()" title="Dark Mode Toggle">
+                    <i class="fas fa-moon" id="theme-icon"></i>
+                </div>
+                <div class="nav-toggle" onclick="toggleMenu()">
+                    <i class="fas fa-bars"></i>
+                </div>
             </div>
         </div>
     </nav>
@@ -350,15 +355,18 @@
 
             const datasets = Object.keys(colors).map(person => ({
                 label: person,
-                data: data[person],
+                data: data[person] || [],
                 borderColor: colors[person],
                 backgroundColor: colors[person] + '20',
                 tension: 0.4,
                 fill: false,
                 pointBackgroundColor: colors[person],
                 pointBorderColor: '#fff',
-                pointBorderWidth: 2,
-                pointRadius: 5
+                pointBorderWidth: 3,
+                pointRadius: 6,
+                pointHoverRadius: 8,
+                borderWidth: 3,
+                spanGaps: false
             }));
 
             charts[canvasId] = new Chart(ctx, {
@@ -375,12 +383,28 @@
                             beginAtZero: true,
                             grid: {
                                 color: '#f0f0f0'
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return value;
+                                }
                             }
                         },
                         x: {
                             grid: {
                                 color: '#f0f0f0'
                             }
+                        }
+                    },
+                    elements: {
+                        point: {
+                            radius: 6,
+                            hoverRadius: 8,
+                            borderWidth: 2
+                        },
+                        line: {
+                            borderWidth: 3,
+                            tension: 0.4
                         }
                     },
                     plugins: {
@@ -640,6 +664,42 @@
                     createNewWeek();
                 }
             });
+        });
+
+        // Dark Mode Toggle
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+
+            // Update toggle icon
+            const themeIcon = document.getElementById('theme-icon');
+            if (newTheme === 'dark') {
+                themeIcon.className = 'fas fa-sun';
+            } else {
+                themeIcon.className = 'fas fa-moon';
+            }
+        }
+
+        // Load saved theme or default to light
+        function loadTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+
+            // Update toggle icon
+            const themeIcon = document.getElementById('theme-icon');
+            if (savedTheme === 'dark') {
+                themeIcon.className = 'fas fa-sun';
+            } else {
+                themeIcon.className = 'fas fa-moon';
+            }
+        }
+
+        // Initialize theme on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadTheme();
         });
     </script>
 </body>
