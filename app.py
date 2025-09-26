@@ -3,9 +3,15 @@ import json
 import os
 from datetime import datetime
 from database import get_all_data as db_get_all_data, save_data as db_save_data, get_week_data, update_entry, init_database, get_database_stats, get_all_weeks
+from config import config
 
 app = Flask(__name__)
-app.secret_key = 'brecher_system_secret_key_2025'  # Für Sessions
+
+# Configure app based on environment
+config_name = os.environ.get('FLASK_ENV', 'development')
+app_config = config.get(config_name, config['default'])
+app.config.from_object(app_config)
+app.secret_key = app_config.SECRET_KEY
 
 # Passwort für die Website
 WEBSITE_PASSWORD = 'AlphaBrecher'
