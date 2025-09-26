@@ -18,7 +18,7 @@ WEBSITE_PASSWORD = 'AlphaBrecher'
 
 # BrecherSystem Konfiguration
 NAMES = ['David', 'Cedric', 'Müller']
-CATEGORIES = ['Gym', 'Food', 'Saps', 'Sleep', 'Study', 'Steps', 'Hausarbeit', 'Work', 'Recovery', 'Podcast/Read', 'Fehler', 'Fasten', 'Cold Plunge', 'Organisatorisches']
+CATEGORIES = ['Gym', 'Food', 'Saps', 'Sleep', 'Study', 'Steps', 'Hausarbeit', 'Work', 'Recovery', 'Podcast/Read', 'Fehler', 'Fasten', 'Cold Plunge', 'Organisatorisches', 'PB']
 DAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']
 # get_weeks_list() wird jetzt dynamisch aus der Datenbank geladen
 
@@ -119,6 +119,18 @@ def calculate_points(category, value):
         return 1 if val > 0 else 0  # 1 eingetragen = 1 Punkt
     elif category == 'Organisatorisches':
         return min(val, 2)  # Pro Stunde 1 Punkt, max 2
+    elif category == 'PB':
+        # 2h=1pt, 4h=2pt, 6h=3pt, 8h=4pt
+        if val >= 8:
+            return 4
+        elif val >= 6:
+            return 3
+        elif val >= 4:
+            return 2
+        elif val >= 2:
+            return 1
+        else:
+            return 0
 
     return 0
 
@@ -189,6 +201,11 @@ def get_cell_color(category, value, person=None, day=None, week=None):
         # Stunden: 2=grün, 1=orange, 0=rot
         if val >= 2: return 'green'
         elif val >= 1: return 'orange'
+        else: return 'red'
+    elif category == 'PB':
+        # Stunden: 8=grün, 6=grün, 4=orange, 2=orange, 0=rot
+        if val >= 6: return 'green'
+        elif val >= 2: return 'orange'
         else: return 'red'
 
     return 'white'

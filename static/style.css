@@ -1707,7 +1707,7 @@ footer {
 }
 
 [data-theme="dark"] .person-name {
-    color: var(--text-primary);
+    color: #000000 !important;
     font-weight: 700;
 }
 
