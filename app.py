@@ -484,8 +484,22 @@ def week_view(week_num):
 
     week_key = f'KW{week_num}'
 
+    # Lade Wochendaten aus der Datenbank falls nicht im data_store
     if week_key not in data_store:
-        return redirect(url_for('index'))
+        # Versuche Daten aus Datenbank zu laden
+        week_data_from_db = get_week_data(week_key)
+        if not week_data_from_db:
+            # Erstelle leere Woche falls nicht existiert
+            data_store[week_key] = {}
+            for person in NAMES:
+                data_store[week_key][person] = {}
+                for day in DAYS:
+                    data_store[week_key][person][day] = {}
+                    for cat in CATEGORIES:
+                        data_store[week_key][person][day][cat] = ''
+        else:
+            # Füge geladene Daten zum data_store hinzu
+            data_store[week_key] = week_data_from_db
 
     # Berechne alle Punkte und Farben für die Woche
     week_data = {}
