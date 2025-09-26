@@ -18,7 +18,14 @@ if config.use_postgresql:
 def get_db_connection():
     """Get database connection based on configuration"""
     if config.use_postgresql:
-        return psycopg.connect(config.database_config['url'])
+        db_url = config.database_config['url']
+        parsed_url = urlparse(db_url)
+        if not parsed_url.hostname:
+            raise ValueError(
+                "PostgreSQL database URL is missing a hostname. "
+                "Please check your DATABASE_URL environment variable or config.py."
+            )
+        return psycopg.connect(db_url)
     else:
         return sqlite3.connect(DATABASE_PATH)
 
@@ -155,11 +162,20 @@ def save_data(data):
         for person, person_data in week_data.items():
             for day, day_data in person_data.items():
                 for category, value in day_data.items():
-                    execute_sql('''
-                        INSERT OR REPLACE INTO brecher_data
-                        (week, person, day, category, value, updated_at)
-                        VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-                    ''', (week, person, day, category, str(value) if value else ''))
+                    if config.use_postgresql:
+                        execute_sql('''
+                            INSERT INTO brecher_data
+                            (week, person, day, category, value, updated_at)
+                            VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                            ON CONFLICT (week, person, day, category)
+                            DO UPDATE SET value = EXCLUDED.value, updated_at = CURRENT_TIMESTAMP
+                        ''', (week, person, day, category, str(value) if value else ''))
+                    else:
+                        execute_sql('''
+                            INSERT OR REPLACE INTO brecher_data
+                            (week, person, day, category, value, updated_at)
+                            VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                        ''', (week, person, day, category, str(value) if value else ''))
                     saved_records += 1
 
     return saved_records
@@ -186,11 +202,20 @@ def get_week_data(week):
 
 def update_entry(week, person, day, category, value):
     """Update a specific entry."""
-    execute_sql('''
-        INSERT OR REPLACE INTO brecher_data
-        (week, person, day, category, value, updated_at)
-        VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-    ''', (week, person, day, category, str(value) if value else ''))
+    if config.use_postgresql:
+        execute_sql('''
+            INSERT INTO brecher_data
+            (week, person, day, category, value, updated_at)
+            VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT (week, person, day, category)
+            DO UPDATE SET value = EXCLUDED.value, updated_at = CURRENT_TIMESTAMP
+        ''', (week, person, day, category, str(value) if value else ''))
+    else:
+        execute_sql('''
+            INSERT OR REPLACE INTO brecher_data
+            (week, person, day, category, value, updated_at)
+            VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        ''', (week, person, day, category, str(value) if value else ''))
 
 def backup_to_json(filename=None):
     """Backup database to JSON file."""
