@@ -684,7 +684,12 @@ def migrate_data_now():
         return "❌ Nur auf Railway verfügbar (DATABASE_URL benötigt)"
 
     try:
-        from database import get_database_stats
+        from database import get_database_stats, init_database
+
+        # Zuerst Datenbank initialisieren (Tabellen erstellen)
+        init_database()
+
+        # Dann prüfen ob schon Daten da sind
         stats = get_database_stats()
         if stats['total_records'] > 0:
             return f"ℹ️ Datenbank hat bereits {stats['total_records']} Datensätze"
