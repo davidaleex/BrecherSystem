@@ -33,6 +33,22 @@ def initialize_data():
     """Initialisiere Datenbank und lade Daten"""
     global data_store
     init_database()
+
+    # Auto-migrate data on Railway if database is empty
+    if os.environ.get('DATABASE_URL') and os.path.exists('railway_migration.json'):
+        from database import get_database_stats
+        stats = get_database_stats()
+        if stats['total_records'] == 0:
+            print('🚀 Auto-migrating data to Railway PostgreSQL...')
+            try:
+                import json
+                with open('railway_migration.json', 'r') as f:
+                    migration_data = json.load(f)
+                records = db_save_data(migration_data)
+                print(f'✅ Auto-migrated {records} records!')
+            except Exception as e:
+                print(f'❌ Migration error: {e}')
+
     data_store = db_get_all_data()
 
     # Sicherstellen, dass alle Wochen aus der DB existieren
