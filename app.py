@@ -677,6 +677,39 @@ def create_week():
         'redirect_url': f'/week/{week_number}'
     })
 
+@app.route('/migrate-data-now')
+def migrate_data_now():
+    """Manueller Migration Endpoint - nur für Railway Setup"""
+    if not os.environ.get('DATABASE_URL'):
+        return "❌ Nur auf Railway verfügbar (DATABASE_URL benötigt)"
+
+    try:
+        from database import get_database_stats
+        stats = get_database_stats()
+        if stats['total_records'] > 0:
+            return f"ℹ️ Datenbank hat bereits {stats['total_records']} Datensätze"
+
+        # Migration ausführen
+        import json
+        if not os.path.exists('railway_migration.json'):
+            return "❌ railway_migration.json nicht gefunden"
+
+        with open('railway_migration.json', 'r', encoding='utf-8') as f:
+            data = json.load(f)
+
+        records = db_save_data(data)
+        final_stats = get_database_stats()
+
+        return f"""
+        ✅ Migration erfolgreich!<br>
+        📊 {records} Datensätze migriert<br>
+        📊 Finale Statistik: {final_stats['total_records']} Einträge über {final_stats['total_weeks']} Wochen<br>
+        🎉 BrecherSystem ist bereit!
+        """
+
+    except Exception as e:
+        return f"❌ Migration Fehler: {str(e)}"
+
 if __name__ == '__main__':
     print("🚀 Starting BrecherSystem with SQLite Database...")
     initialize_data()
