@@ -13,10 +13,15 @@
                 <a href="/" class="back-button">← Zurück zur Übersicht</a>
                 <div class="week-title-section">
                     <h1>📊 KALENDERWOCHE {{ week_num }}</h1>
-                    <button class="info-button" onclick="togglePointsInfo()">
-                        <i class="fas fa-info-circle"></i>
-                        <span>Punkte-Info</span>
-                    </button>
+                    <div class="header-actions">
+                        <div class="theme-toggle" onclick="toggleTheme()" title="Dark Mode Toggle">
+                            <i class="fas fa-moon" id="theme-icon"></i>
+                        </div>
+                        <button class="info-button" onclick="togglePointsInfo()">
+                            <i class="fas fa-info-circle"></i>
+                            <span>Punkte-Info</span>
+                        </button>
+                    </div>
                 </div>
                 <div class="week-nav">
                     {% if week_num > 39 %}
@@ -260,8 +265,7 @@
                 // Update scoreboard
                 updateScoreboard(result.scoreboard);
 
-                // Auto-save
-                saveData();
+                // Kein Auto-save mehr - nur bei explizitem "Daten speichern" Klick
             })
             .catch(error => {
                 console.error('Error:', error);
@@ -334,10 +338,10 @@
             }, 3000);
         }
 
-        // Auto-save alle 30 Sekunden
-        setInterval(() => {
-            fetch('/api/save', { method: 'POST' });
-        }, 30000);
+        // Kein Auto-save mehr - Benutzer muss explizit "Daten speichern" klicken
+        // setInterval(() => {
+        //     fetch('/api/save', { method: 'POST' });
+        // }, 30000);
 
         // Points info panel toggle
         function togglePointsInfo() {
@@ -364,6 +368,42 @@
                     button.innerHTML = '<i class="fas fa-info-circle"></i><span>Punkte-Info</span>';
                 }
             }
+        });
+
+        // Dark Mode Toggle
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+
+            // Update toggle icon
+            const themeIcon = document.getElementById('theme-icon');
+            if (newTheme === 'dark') {
+                themeIcon.className = 'fas fa-sun';
+            } else {
+                themeIcon.className = 'fas fa-moon';
+            }
+        }
+
+        // Load saved theme or default to light
+        function loadTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+
+            // Update toggle icon
+            const themeIcon = document.getElementById('theme-icon');
+            if (savedTheme === 'dark') {
+                themeIcon.className = 'fas fa-sun';
+            } else {
+                themeIcon.className = 'fas fa-moon';
+            }
+        }
+
+        // Initialize theme on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadTheme();
         });
     </script>
 </body>
