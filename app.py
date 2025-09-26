@@ -24,32 +24,46 @@ DAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']
 
 # Datenstruktur - jetzt aus der Datenbank
 data_store = {}
+db_initialized = False
 
 def get_weeks_list():
     """Hole verfügbare Wochen aus der Datenbank"""
     return get_all_weeks()
 
+def ensure_database_initialized():
+    """Stelle sicher, dass die Datenbank initialisiert ist"""
+    global db_initialized, data_store
+    if db_initialized:
+        return
+
+    try:
+        init_database()
+
+        # Auto-migrate data on Railway if database is empty
+        if os.environ.get('DATABASE_URL') and os.path.exists('railway_migration.json'):
+            from database import get_database_stats
+            stats = get_database_stats()
+            if stats['total_records'] == 0:
+                print('🚀 Auto-migrating data to Railway PostgreSQL...')
+                try:
+                    import json
+                    with open('railway_migration.json', 'r') as f:
+                        migration_data = json.load(f)
+                    records = db_save_data(migration_data)
+                    print(f'✅ Auto-migrated {records} records!')
+                except Exception as e:
+                    print(f'❌ Migration error: {e}')
+
+        data_store = db_get_all_data()
+        db_initialized = True
+        print('✅ Database initialized successfully')
+    except Exception as e:
+        print(f'❌ Database initialization failed: {e}')
+        raise
+
 def initialize_data():
     """Initialisiere Datenbank und lade Daten"""
-    global data_store
-    init_database()
-
-    # Auto-migrate data on Railway if database is empty
-    if os.environ.get('DATABASE_URL') and os.path.exists('railway_migration.json'):
-        from database import get_database_stats
-        stats = get_database_stats()
-        if stats['total_records'] == 0:
-            print('🚀 Auto-migrating data to Railway PostgreSQL...')
-            try:
-                import json
-                with open('railway_migration.json', 'r') as f:
-                    migration_data = json.load(f)
-                records = db_save_data(migration_data)
-                print(f'✅ Auto-migrated {records} records!')
-            except Exception as e:
-                print(f'❌ Migration error: {e}')
-
-    data_store = db_get_all_data()
+    ensure_database_initialized()
 
     # Sicherstellen, dass alle Wochen aus der DB existieren
     available_weeks = get_weeks_list()
@@ -473,6 +487,9 @@ def index():
     if not require_auth():
         return redirect(url_for('login'))
 
+    # Ensure database is initialized
+    ensure_database_initialized()
+
     weekly_overview = get_weekly_overview()
     monthly_scoreboard = get_monthly_scoreboard()
     total_scoreboard = get_total_scoreboard()
@@ -760,12 +777,21 @@ def migrate_data_now():
         return f"❌ Migration Fehler: {str(e)}"
 
 if __name__ == '__main__':
-    print("🚀 Starting BrecherSystem with SQLite Database...")
-    initialize_data()
-
-    # Show database stats
-    stats = get_database_stats()
-    print(f"📊 Database loaded: {stats['total_records']} records, {stats['total_weeks']} weeks")
+    # Check if running on Railway
+    if os.environ.get('DATABASE_URL'):
+        print("🚀 Starting BrecherSystem on Railway with PostgreSQL...")
+        try:
+            initialize_data()
+            stats = get_database_stats()
+            print(f"📊 Database loaded: {stats['total_records']} records, {stats['total_weeks']} weeks")
+        except Exception as e:
+            print(f"⚠️ Database initialization warning: {e}")
+            print("🔧 Continuing startup - database will be initialized on first request...")
+    else:
+        print("🚀 Starting BrecherSystem with SQLite Database...")
+        initialize_data()
+        stats = get_database_stats()
+        print(f"📊 Database loaded: {stats['total_records']} records, {stats['total_weeks']} weeks")
 
     # Starte Server auf allen Netzwerk-Interfaces
     port = int(os.environ.get('PORT', 8080))
