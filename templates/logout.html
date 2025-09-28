@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BrecherSystem - Abmelden</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getAuth, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+
+        // Firebase-Konfiguration laden und ausloggen
+        fetch('/api/firebase-config')
+            .then(response => response.json())
+            .then(config => {
+                const app = initializeApp(config);
+                const auth = getAuth(app);
+
+                // Logout-Flag setzen BEVOR Firebase logout
+                sessionStorage.setItem('firebase_logged_out', 'true');
+                localStorage.setItem('firebase_logged_out', 'true');
+
+                // Firebase Logout
+                signOut(auth).then(() => {
+                    console.log('Firebase logout successful');
+                    // Sofortige Weiterleitung zur Login-Seite
+                    window.location.href = '/login?logged_out=true';
+                }).catch((error) => {
+                    console.error('Firebase logout error:', error);
+                    // Trotzdem zur Login-Seite weiterleiten
+                    window.location.href = '/login?logged_out=true';
+                });
+            })
+            .catch(error => {
+                console.error('Firebase config error:', error);
+                // Fallback: Direkt zur Login-Seite
+                setTimeout(() => {
+                    window.location.href = '/login';
+                }, 1000);
+            });
+    </script>
+
+    <style>
+        .logout-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .logout-box {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            padding: 3rem;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            text-align: center;
+            min-width: 400px;
+        }
+
+        .logout-title {
+            font-size: 2rem;
+            color: #4472c4;
+            margin-bottom: 1rem;
+            font-weight: 700;
+        }
+
+        .logout-message {
+            color: #666;
+            margin-bottom: 2rem;
+            font-size: 1.1rem;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #4472c4;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .manual-link {
+            margin-top: 2rem;
+            padding-top: 1rem;
+            border-top: 1px solid #e1e5e9;
+        }
+
+        .manual-link a {
+            color: #4472c4;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .manual-link a:hover {
+            color: #335c99;
+        }
+    </style>
+</head>
+<body>
+    <div class="logout-container">
+        <div class="logout-box">
+            <h1 class="logout-title">🏋️ BRECHERSYSTEM</h1>
+            <p class="logout-message">Du wirst abgemeldet...</p>
+
+            <div class="spinner"></div>
+
+            <div class="manual-link">
+                <p>Falls die Weiterleitung nicht funktioniert:</p>
+                <a href="/login">Hier klicken für Login</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

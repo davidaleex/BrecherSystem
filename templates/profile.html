@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BrecherSystem - Profil</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .profile-container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .profile-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 3rem 2rem;
+            border-radius: 20px;
+            text-align: center;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .profile-avatar {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            border: 4px solid white;
+            margin: 0 auto 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.2);
+            font-size: 3rem;
+            overflow: hidden;
+        }
+
+        .profile-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .profile-name {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .profile-email {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .profile-badge {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+        }
+
+        .profile-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            border: 2px solid #f0f0f0;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .stat-icon {
+            font-size: 2.5rem;
+            color: #4472c4;
+            margin-bottom: 1rem;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 1rem;
+        }
+
+        .profile-actions {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+        }
+
+        .action-button {
+            display: inline-block;
+            padding: 1rem 2rem;
+            background: #4472c4;
+            color: white;
+            text-decoration: none;
+            border-radius: 10px;
+            font-weight: 600;
+            margin: 0.5rem;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+        }
+
+        .action-button:hover {
+            background: #335c99;
+            transform: translateY(-2px);
+        }
+
+        .action-button.secondary {
+            background: #6c757d;
+        }
+
+        .action-button.secondary:hover {
+            background: #5a6268;
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #4472c4;
+            text-decoration: none;
+            font-weight: 600;
+            margin-bottom: 2rem;
+        }
+
+        .back-link:hover {
+            color: #335c99;
+        }
+    </style>
+</head>
+<body>
+    <div class="profile-container">
+        <a href="/" class="back-link">
+            <i class="fas fa-arrow-left"></i>
+            Zurück zum Dashboard
+        </a>
+
+        <div class="profile-header">
+            <div class="profile-avatar">
+                {% if user.profile_picture %}
+                    <img src="{{ user.profile_picture }}" alt="Profilbild">
+                {% else %}
+                    <i class="fas fa-user"></i>
+                {% endif %}
+            </div>
+
+            <h1 class="profile-name">
+                {{ user.display_name or 'Unbekannter Nutzer' }}
+            </h1>
+
+            {% if user.email %}
+                <p class="profile-email">{{ user.email }}</p>
+            {% endif %}
+
+            <div class="profile-badge">
+                {% if user.type == 'firebase' %}
+                    <i class="fas fa-fire"></i> Firebase Account
+                {% else %}
+                    <i class="fas fa-key"></i> Legacy Account
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="profile-stats">
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-calendar-week"></i>
+                </div>
+                <div class="stat-number">0</div>
+                <div class="stat-label">Wochen absolviert</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-trophy"></i>
+                </div>
+                <div class="stat-number">0</div>
+                <div class="stat-label">Erfolge erreicht</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <div class="stat-number">0</div>
+                <div class="stat-label">Gesamtpunkte</div>
+            </div>
+        </div>
+
+        <div class="profile-actions">
+            <h3>Aktionen</h3>
+
+            {% if user.type == 'firebase' %}
+                <button onclick="updateProfile()" class="action-button">
+                    <i class="fas fa-edit"></i> Profil bearbeiten
+                </button>
+            {% endif %}
+
+            <a href="/logout" class="action-button secondary">
+                <i class="fas fa-sign-out-alt"></i> Abmelden
+            </a>
+        </div>
+    </div>
+
+    <script>
+        function updateProfile() {
+            alert('Profil-Bearbeitung wird demnächst verfügbar sein!');
+        }
+
+        // Load user stats (placeholder for now)
+        document.addEventListener('DOMContentLoaded', function() {
+            // TODO: Load actual user statistics from backend
+        });
+    </script>
+</body>
+</html>

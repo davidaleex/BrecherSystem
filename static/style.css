@@ -1651,6 +1651,22 @@ footer {
 .nav-actions {
     display: flex;
     align-items: center;
+    gap: 1rem;
+}
+
+.profile-link {
+    color: #4472c4 !important;
+    font-size: 1.5rem;
+    transition: all 0.3s ease;
+    padding: 0.5rem;
+    border-radius: 8px;
+    text-decoration: none;
+}
+
+.profile-link:hover {
+    color: #335c99 !important;
+    background: rgba(68, 114, 196, 0.1);
+    transform: scale(1.1);
 }
 
 /* Dark mode base styles */

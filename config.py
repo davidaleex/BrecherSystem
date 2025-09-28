@@ -13,6 +13,22 @@ class Config:
     # SQLite fallback for local development
     SQLITE_DATABASE_PATH = 'brecher_system.db'
 
+    # Firebase configuration (Backend - Admin SDK)
+    FIREBASE_PROJECT_ID = os.environ.get('FIREBASE_PROJECT_ID')
+    FIREBASE_PRIVATE_KEY = os.environ.get('FIREBASE_PRIVATE_KEY')
+    FIREBASE_CLIENT_EMAIL = os.environ.get('FIREBASE_CLIENT_EMAIL')
+    FIREBASE_CLIENT_ID = os.environ.get('FIREBASE_CLIENT_ID')
+    FIREBASE_AUTH_URI = os.environ.get('FIREBASE_AUTH_URI', 'https://accounts.google.com/o/oauth2/auth')
+    FIREBASE_TOKEN_URI = os.environ.get('FIREBASE_TOKEN_URI', 'https://oauth2.googleapis.com/token')
+
+    # Firebase Web Configuration (Frontend)
+    FIREBASE_WEB_API_KEY = os.environ.get('FIREBASE_WEB_API_KEY')
+    FIREBASE_WEB_AUTH_DOMAIN = os.environ.get('FIREBASE_WEB_AUTH_DOMAIN')
+    FIREBASE_WEB_PROJECT_ID = os.environ.get('FIREBASE_WEB_PROJECT_ID', FIREBASE_PROJECT_ID)
+    FIREBASE_WEB_STORAGE_BUCKET = os.environ.get('FIREBASE_WEB_STORAGE_BUCKET')
+    FIREBASE_WEB_MESSAGING_SENDER_ID = os.environ.get('FIREBASE_WEB_MESSAGING_SENDER_ID')
+    FIREBASE_WEB_APP_ID = os.environ.get('FIREBASE_WEB_APP_ID')
+
     @property
     def use_postgresql(self):
         """Check if PostgreSQL should be used"""

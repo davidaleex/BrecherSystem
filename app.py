@@ -2,8 +2,9 @@ from flask import Flask, render_template, request, jsonify, redirect, url_for, s
 import json
 import os
 from datetime import datetime
-from database import get_all_data as db_get_all_data, save_data as db_save_data, get_week_data, update_entry, init_database, get_database_stats, get_all_weeks
+from database import get_all_data as db_get_all_data, save_data as db_save_data, get_week_data, update_entry, init_database, get_database_stats, get_all_weeks, create_user, get_user_by_firebase_uid, get_db_connection
 from config import config
+from firebase_auth import init_firebase, verify_firebase_token, require_firebase_auth, get_current_user, is_firebase_available
 
 app = Flask(__name__)
 
@@ -38,6 +39,9 @@ def ensure_database_initialized():
 
     try:
         init_database()
+
+        # Initialize Firebase
+        init_firebase()
 
         # Auto-migrate data on Railway if database is empty
         if os.environ.get('DATABASE_URL') and os.path.exists('railway_migration.json'):
@@ -447,18 +451,32 @@ def get_daily_statistics(week_num=None):
 
 def require_auth():
     """Prüfe ob Benutzer eingeloggt ist"""
+    # Check Firebase authentication first
+    if is_firebase_available():
+        current_user = get_current_user()
+        if current_user:
+            return True
+
+    # Fallback to session-based auth
     return session.get('authenticated', False)
 
 @app.route('/login', methods=['GET', 'POST'])
+@app.route('/login-new', methods=['GET', 'POST'])
 def login():
-    """Login-Seite"""
+    """Firebase-basierte Login-Seite"""
     if request.method == 'POST':
-        password = request.form.get('password')
-        if password == WEBSITE_PASSWORD:
-            session['authenticated'] = True
-            return redirect(url_for('index'))
-        else:
-            return render_template('login.html', error='Falsches Passwort!')
+        action = request.form.get('action')
+
+        if action == 'legacy':
+            # Alte Passwort-Anmeldung als Fallback
+            password = request.form.get('old_password')
+            if password == WEBSITE_PASSWORD:
+                session['authenticated'] = True
+                session['user_name'] = 'Legacy User'
+                session['user_email'] = 'legacy@brechersystem.com'
+                return redirect(url_for('index'))
+            else:
+                return render_template('login.html', error='Falsches altes Passwort!')
 
     return render_template('login.html')
 
@@ -466,7 +484,145 @@ def login():
 def logout():
     """Logout-Funktion"""
     session.pop('authenticated', None)
-    return redirect(url_for('login'))
+    session.pop('firebase_user', None)
+    # Render logout page mit Firebase signOut
+    return render_template('logout.html')
+
+
+# Firebase Authentication Routes
+@app.route('/api/auth/verify', methods=['POST'])
+def verify_firebase_auth():
+    """Verify Firebase ID token and create/update user"""
+    try:
+        print(f"🔐 Auth verification request received", flush=True)
+        data = request.get_json()
+        print(f"🔐 Request data keys: {list(data.keys()) if data else 'None'}", flush=True)
+
+        id_token = data.get('idToken') if data else None
+
+        if not id_token:
+            print(f"❌ No ID token provided")
+            return jsonify({'error': 'ID token required'}), 400
+
+        print(f"🔐 Verifying Firebase token (length: {len(id_token)})")
+
+        # Verify Firebase token
+        user_info = verify_firebase_token(id_token)
+        if not user_info:
+            print(f"❌ Firebase token verification failed")
+            return jsonify({'error': 'Invalid token'}), 401
+
+        print(f"✅ Firebase token verified for user: {user_info.get('email')}")
+
+        # Create or update user in database
+        user = create_user(
+            firebase_uid=user_info['firebase_uid'],
+            email=user_info['email'],
+            display_name=user_info['display_name'],
+            profile_picture_url=user_info['profile_picture']
+        )
+
+        print(f"✅ User created/updated in database: {user}")
+
+        # Store user info in session
+        session['firebase_user'] = user_info
+        session['authenticated'] = True
+
+        print(f"✅ Session updated successfully")
+
+        return jsonify({
+            'success': True,
+            'user': {
+                'uid': user_info['firebase_uid'],
+                'email': user_info['email'],
+                'displayName': user_info['display_name'],
+                'photoURL': user_info['profile_picture']
+            }
+        })
+
+    except Exception as e:
+        print(f"❌ Firebase auth verification failed: {e}")
+        import traceback
+        traceback_str = traceback.format_exc()
+        print(f"❌ Full traceback: {traceback_str}")
+
+        # Return detailed error in development
+        return jsonify({
+            'error': 'Authentication failed',
+            'details': str(e),
+            'traceback': traceback_str
+        }), 500
+
+
+@app.route('/api/auth/status')
+def auth_status():
+    """Get current authentication status"""
+    if is_firebase_available():
+        user = get_current_user()
+        if user:
+            return jsonify({
+                'authenticated': True,
+                'firebase': True,
+                'user': {
+                    'uid': user['firebase_uid'],
+                    'email': user['email'],
+                    'displayName': user['display_name']
+                }
+            })
+
+    # Fallback to old auth system
+    if session.get('authenticated'):
+        return jsonify({
+            'authenticated': True,
+            'firebase': False,
+            'legacy': True
+        })
+
+    return jsonify({'authenticated': False})
+
+
+@app.route('/api/firebase-config')
+def firebase_config():
+    """Get Firebase configuration for frontend"""
+    return jsonify({
+        'apiKey': app_config.FIREBASE_WEB_API_KEY or 'demo-key',
+        'authDomain': app_config.FIREBASE_WEB_AUTH_DOMAIN or f'{app_config.FIREBASE_PROJECT_ID}.firebaseapp.com',
+        'projectId': app_config.FIREBASE_WEB_PROJECT_ID or app_config.FIREBASE_PROJECT_ID,
+        'storageBucket': app_config.FIREBASE_WEB_STORAGE_BUCKET or f'{app_config.FIREBASE_PROJECT_ID}.appspot.com',
+        'messagingSenderId': app_config.FIREBASE_WEB_MESSAGING_SENDER_ID or '123456789',
+        'appId': app_config.FIREBASE_WEB_APP_ID or '1:123456789:web:demo'
+    })
+
+
+@app.route('/profile')
+def profile():
+    """User profile page"""
+    if not require_auth():
+        return redirect(url_for('login'))
+
+    ensure_database_initialized()
+
+    # Get current user info
+    current_user = get_current_user()
+
+    if current_user:
+        # Firebase user
+        user_info = {
+            'type': 'firebase',
+            'uid': current_user['firebase_uid'],
+            'email': current_user['email'],
+            'display_name': current_user['display_name'],
+            'profile_picture': current_user.get('profile_picture')
+        }
+    else:
+        # Legacy user
+        user_info = {
+            'type': 'legacy',
+            'display_name': 'Legacy User',
+            'email': None
+        }
+
+    return render_template('profile.html', user=user_info)
 
 @app.route('/')
 def index():
@@ -782,4 +938,4 @@ if __name__ == '__main__':
 
     # Starte Server auf allen Netzwerk-Interfaces
     port = int(os.environ.get('PORT', 8080))
-    app.run(host='0.0.0.0', port=port, debug=False)
+    app.run(host='0.0.0.0', port=port, debug=True)

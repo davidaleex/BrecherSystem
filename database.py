@@ -59,6 +59,36 @@ def execute_sql(sql, params=None, fetch=False):
 def init_database():
     """Initialize the database with required tables."""
 
+    # Create users table - PostgreSQL and SQLite compatible
+    if config.use_postgresql:
+        create_users_table_sql = '''
+            CREATE TABLE IF NOT EXISTS users (
+                id SERIAL PRIMARY KEY,
+                firebase_uid TEXT UNIQUE NOT NULL,
+                email TEXT UNIQUE NOT NULL,
+                display_name TEXT,
+                profile_picture_url TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                is_active BOOLEAN DEFAULT TRUE
+            )
+        '''
+    else:
+        create_users_table_sql = '''
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                firebase_uid TEXT UNIQUE NOT NULL,
+                email TEXT UNIQUE NOT NULL,
+                display_name TEXT,
+                profile_picture_url TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                is_active BOOLEAN DEFAULT TRUE
+            )
+        '''
+
+    execute_sql(create_users_table_sql)
+
     # Create main data table - PostgreSQL and SQLite compatible
     if config.use_postgresql:
         create_table_sql = '''
@@ -91,10 +121,20 @@ def init_database():
 
     execute_sql(create_table_sql)
 
-    # Create index for better performance
+    # Create indexes for better performance
     execute_sql('''
         CREATE INDEX IF NOT EXISTS idx_week_person_day
         ON brecher_data(week, person, day)
+    ''')
+
+    execute_sql('''
+        CREATE INDEX IF NOT EXISTS idx_users_firebase_uid
+        ON users(firebase_uid)
+    ''')
+
+    execute_sql('''
+        CREATE INDEX IF NOT EXISTS idx_users_email
+        ON users(email)
     ''')
 
     db_info = config.database_config['url'] if config.use_postgresql else DATABASE_PATH
@@ -277,3 +317,82 @@ if __name__ == "__main__":
     print(f"   Weeks: {stats['total_weeks']}")
     print(f"   Persons: {stats['total_persons']}")
     print(f"   Last Updated: {stats['last_updated']}")
+
+
+# User Management Functions
+def create_user(firebase_uid, email, display_name=None, profile_picture_url=None):
+    """Create a new user in the database."""
+    # For SQLite, provide default values for old required columns
+    sql = '''
+        INSERT INTO users (firebase_uid, email, display_name, profile_picture_url, name, password, is_active, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, TRUE, CURRENT_TIMESTAMP)
+        ON CONFLICT(firebase_uid) DO UPDATE SET
+            email = excluded.email,
+            display_name = excluded.display_name,
+            profile_picture_url = excluded.profile_picture_url,
+            updated_at = CURRENT_TIMESTAMP
+    '''
+
+    # Use display_name as name fallback, or email prefix
+    name = display_name or email.split('@')[0]
+    dummy_password = 'firebase_user'  # Dummy password for Firebase users
+
+    if config.use_postgresql:
+        sql = '''
+            INSERT INTO users (firebase_uid, email, display_name, profile_picture_url)
+            VALUES (%s, %s, %s, %s)
+            ON CONFLICT(firebase_uid) DO UPDATE SET
+                email = EXCLUDED.email,
+                display_name = EXCLUDED.display_name,
+                profile_picture_url = EXCLUDED.profile_picture_url,
+                updated_at = CURRENT_TIMESTAMP
+        '''
+        return execute_sql(sql, (firebase_uid, email, display_name, profile_picture_url))
+
+    return execute_sql(sql, (firebase_uid, email, display_name, profile_picture_url, name, dummy_password))
+
+
+def get_user_by_firebase_uid(firebase_uid):
+    """Get user by Firebase UID."""
+    sql = 'SELECT * FROM users WHERE firebase_uid = ? AND is_active = TRUE'
+    params = (firebase_uid,)
+
+    if config.use_postgresql:
+        sql = 'SELECT * FROM users WHERE firebase_uid = %s AND is_active = TRUE'
+        params = (firebase_uid,)
+
+    result = execute_sql(sql, params)
+    return result[0] if result else None
+
+
+def get_user_by_email(email):
+    """Get user by email."""
+    sql = 'SELECT * FROM users WHERE email = ? AND is_active = TRUE'
+    params = (email,)
+
+    if config.use_postgresql:
+        sql = 'SELECT * FROM users WHERE email = %s AND is_active = TRUE'
+        params = (email,)
+
+    result = execute_sql(sql, params)
+    return result[0] if result else None
+
+
+def update_user(firebase_uid, **kwargs):
+    """Update user information."""
+    allowed_fields = ['email', 'display_name', 'profile_picture_url', 'is_active']
+    fields = {k: v for k, v in kwargs.items() if k in allowed_fields}
+
+    if not fields:
+        return False
+
+    set_clause = ', '.join([f"{k} = ?" for k in fields.keys()])
+    sql = f'UPDATE users SET {set_clause}, updated_at = CURRENT_TIMESTAMP WHERE firebase_uid = ?'
+    params = list(fields.values()) + [firebase_uid]
+
+    if config.use_postgresql:
+        set_clause = ', '.join([f"{k} = %s" for k in fields.keys()])
+        sql = f'UPDATE users SET {set_clause}, updated_at = CURRENT_TIMESTAMP WHERE firebase_uid = %s'
+
+    execute_sql(sql, params)
+    return True
