@@ -384,13 +384,21 @@ def get_weekly_scoreboard(week):
     return scores
 
 def get_monthly_scoreboard():
-    """Erstelle Monats-Scoreboard (alle Wochen zusammen)"""
+    """Erstelle Monats-Scoreboard - nur abgeschlossene Wochen
+    
+    WICHTIG: Laufende Wochen werden nicht in das Monthly Scoreboard einbezogen.
+    """
     monthly_scores = {person: 0 for person in NAMES}
+    
+    # Bestimme welche Woche aktuell im Scoreboard angezeigt wird (abgeschlossene Wochen)
+    current_scoreboard_week = get_scoreboard_week()
 
+    # Nur abgeschlossene Wochen in das Monthly Scoreboard einbeziehen
     for week in get_weeks_list():
-        week_key = f'KW{week}'
-        for person in NAMES:
-            monthly_scores[person] += calculate_weekly_total(person, week_key)
+        if week <= current_scoreboard_week:  # Nur abgeschlossene Wochen
+            week_key = f'KW{week}'
+            for person in NAMES:
+                monthly_scores[person] += calculate_weekly_total(person, week_key)
 
     scores = [(person, round(score, 2)) for person, score in monthly_scores.items()]
     scores.sort(key=lambda x: x[1], reverse=True)
@@ -476,14 +484,20 @@ def get_weeks_with_data():
     return weeks_with_data
 
 def get_category_data_for_charts():
-    """Erstelle Kategorie-Daten für Charts - nur für Wochen mit Daten"""
+    """Erstelle Kategorie-Daten für Charts - nur für abgeschlossene Wochen
+    
+    WICHTIG: Laufende Wochen werden nicht in Charts angezeigt bis Sonntag 22:00.
+    """
     category_data = {}
 
     # Relevante Kategorien für Charts (updated names)
     chart_categories = ['Gym', 'Food', 'Sleep', 'FH', 'Steps', 'Work']
+    
+    # Bestimme welche Woche aktuell im Scoreboard angezeigt wird (abgeschlossene Wochen)
+    current_scoreboard_week = get_scoreboard_week()
 
-    # Nur Wochen mit tatsächlichen Daten verwenden
-    weeks_with_data = get_weeks_with_data()
+    # Nur Wochen mit tatsächlichen Daten verwenden UND die abgeschlossen sind
+    weeks_with_data = [week for week in get_weeks_with_data() if week <= current_scoreboard_week]
 
     for category in chart_categories:
         category_data[category] = {
@@ -493,7 +507,7 @@ def get_category_data_for_charts():
             'Müller': []
         }
 
-        # Für jede Woche mit Daten die Kategorie-Punkte sammeln
+        # Für jede abgeschlossene Woche mit Daten die Kategorie-Punkte sammeln
         for week in weeks_with_data:
             week_key = f'KW{week}'
             category_data[category]['weeks'].append(f'KW{week}')
@@ -523,10 +537,31 @@ def get_current_week_number():
     return current_week
 
 def get_current_week_leaders():
-    """Finde Führende in aktueller Woche pro Kategorie"""
+    """Finde Führende in aktueller/abgeschlossener Woche pro Kategorie
+    
+    WICHTIG: Zeigt nur Leaders für abgeschlossene Wochen (ab Sonntag 22:00).
+    Für laufende Wochen werden keine Leaders angezeigt.
+    """
+    # Bestimme welche Woche im Scoreboard angezeigt wird (abgeschlossene Woche)
+    current_scoreboard_week = get_scoreboard_week()
     current_week = get_current_week_number()
-    week_key = f'KW{current_week}'
-
+    
+    # Wenn aktuelle Woche noch nicht abgeschlossen ist, zeige keine Leaders
+    if current_week > current_scoreboard_week:
+        # Laufende Woche - keine Leaders anzeigen
+        leaders = {}
+        chart_categories = ['Gym', 'Food', 'Sleep', 'FH', 'Steps', 'Work']
+        for category in chart_categories:
+            leaders[category] = {
+                'leader': None,
+                'score': 0,
+                'scores': {person: 0 for person in NAMES},
+                'status': 'In Progress'  # Woche läuft noch
+            }
+        return leaders
+    
+    # Woche ist abgeschlossen - normale Leader-Berechnung
+    week_key = f'KW{current_scoreboard_week}'
     leaders = {}
     chart_categories = ['Gym', 'Food', 'Sleep', 'FH', 'Steps', 'Work']
 
@@ -551,13 +586,15 @@ def get_current_week_leaders():
             leaders[category] = {
                 'leader': leader[0],
                 'score': leader[1],
-                'scores': category_scores
+                'scores': category_scores,
+                'status': 'Final'  # Woche ist abgeschlossen
             }
         else:
             leaders[category] = {
                 'leader': None,
                 'score': 0,
-                'scores': category_scores
+                'scores': category_scores,
+                'status': 'Final'  # Woche ist abgeschlossen
             }
 
     return leaders
