@@ -1008,9 +1008,15 @@ def update_cell():
         category = data.get('category')
         value = data.get('value', '')
 
-        # Validierung
+        # Validierung und Auto-Load der Woche falls nicht im data_store
         if week not in data_store:
-            return jsonify({'error': 'Invalid week'}), 400
+            # Versuche Woche aus der Datenbank zu laden
+            week_data_from_db = get_week_data(week)
+            if not week_data_from_db:
+                return jsonify({'error': 'Invalid week'}), 400
+            else:
+                # Füge geladene Daten zum data_store hinzu
+                data_store[week] = week_data_from_db
 
         if person not in NAMES or day not in DAYS or category not in CATEGORIES:
             return jsonify({'error': 'Invalid parameters'}), 400
@@ -1019,12 +1025,17 @@ def update_cell():
         if category == 'Gym' and not validate_gym_r_entry(value, person, week):
             return jsonify({'error': 'Gym "R" nur 1x pro Woche möglich'}), 400
 
-        # Update Daten
+        # Sicherstellen, dass die Datenstruktur vollständig ist
         if person not in data_store[week]:
             data_store[week][person] = {}
         if day not in data_store[week][person]:
             data_store[week][person][day] = {}
+            # Initialisiere alle Kategorien für diesen Tag falls noch nicht vorhanden
+            for cat in CATEGORIES:
+                if cat not in data_store[week][person][day]:
+                    data_store[week][person][day][cat] = ''
 
+        # Update Daten
         data_store[week][person][day][category] = value
 
         # Speichere auch in der Datenbank
