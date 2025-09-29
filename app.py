@@ -401,25 +401,54 @@ def get_total_scoreboard():
     return get_monthly_scoreboard()
 
 def get_weekly_overview():
-    """Erstelle Übersicht aller Wochen für Hauptseite"""
+    """Erstelle Übersicht aller Wochen für Hauptseite
+    
+    WICHTIG: Für die aktuelle laufende Woche werden keine endgültigen
+    Punkte oder Gewinner angezeigt, bis das offizielle Scoreboard live geht
+    (ab Sonntag 22:00).
+    """
     overview = []
+    
+    # Bestimme welche Woche aktuell im Scoreboard angezeigt wird
+    current_scoreboard_week = get_scoreboard_week()
+    
     for week in get_weeks_list():
         week_key = f'KW{week}'
-        week_scores = get_weekly_scoreboard(week_key)
-
-        # Bestimme Gewinner nur wenn Punkte > 0 existieren
-        winner = None
-        if week_scores and any(score > 0 for _, score in week_scores):
-            # Finde die höchste Punktzahl
-            max_score = max(score for _, score in week_scores)
-            if max_score > 0:
-                winner = next((person, score) for person, score in week_scores if score == max_score)
-
-        overview.append({
-            'week': week,
-            'scores': {person: score for person, score in week_scores},
-            'winner': winner
-        })
+        
+        # Für abgeschlossene Wochen: Normale Berechnung mit Punkten und Gewinnern
+        if week <= current_scoreboard_week:
+            week_scores = get_weekly_scoreboard(week_key)
+            
+            # Bestimme Gewinner nur wenn Punkte > 0 existieren
+            winner = None
+            if week_scores and any(score > 0 for _, score in week_scores):
+                # Finde die höchste Punktzahl
+                max_score = max(score for _, score in week_scores)
+                if max_score > 0:
+                    winner = next((person, score) for person, score in week_scores if score == max_score)
+            
+            overview.append({
+                'week': week,
+                'scores': {person: score for person, score in week_scores},
+                'winner': winner,
+                'is_final': True  # Woche ist abgeschlossen
+            })
+        
+        # Für laufende Wochen: Zeige nur dass die Woche läuft, ohne endgültige Punkte
+        else:
+            # Erstelle leere/vorläufige Punkte für laufende Woche
+            preliminary_scores = []
+            for person in NAMES:
+                preliminary_scores.append((person, 0.0))  # Keine Punkte anzeigen
+                
+            overview.append({
+                'week': week,
+                'scores': {person: 0.0 for person in NAMES},  # Keine Punkte für laufende Woche
+                'winner': None,  # Kein Gewinner für laufende Woche
+                'is_final': False,  # Woche läuft noch
+                'status': 'In Progress'  # Status-Indikator
+            })
+    
     return overview
 
 def get_weeks_with_data():

@@ -175,15 +175,38 @@
                         </thead>
                         <tbody>
                             {% for week_data in weekly_overview %}
-                            <tr>
+                            <tr {% if week_data.get('is_final') == False %}class="week-in-progress"{% endif %}>
                                 <td class="week-cell">
                                     <a href="/week/{{ week_data.week }}">KW{{ week_data.week }}</a>
+                                    {% if week_data.get('is_final') == False %}
+                                    <span class="progress-indicator">🔄</span>
+                                    {% endif %}
                                 </td>
-                                <td class="score-cell">{{ week_data.scores.get('David', 0) }}</td>
-                                <td class="score-cell">{{ week_data.scores.get('Cedric', 0) }}</td>
-                                <td class="score-cell">{{ week_data.scores.get('Müller', 0) }}</td>
+                                <td class="score-cell">
+                                    {% if week_data.get('is_final') == False %}
+                                    <span class="progress-score">-</span>
+                                    {% else %}
+                                    {{ week_data.scores.get('David', 0) }}
+                                    {% endif %}
+                                </td>
+                                <td class="score-cell">
+                                    {% if week_data.get('is_final') == False %}
+                                    <span class="progress-score">-</span>
+                                    {% else %}
+                                    {{ week_data.scores.get('Cedric', 0) }}
+                                    {% endif %}
+                                </td>
+                                <td class="score-cell">
+                                    {% if week_data.get('is_final') == False %}
+                                    <span class="progress-score">-</span>
+                                    {% else %}
+                                    {{ week_data.scores.get('Müller', 0) }}
+                                    {% endif %}
+                                </td>
                                 <td class="winner-cell">
-                                    {% if week_data.winner %}
+                                    {% if week_data.get('is_final') == False %}
+                                    <span class="progress-text">Läuft...</span>
+                                    {% elif week_data.winner %}
                                     🏆 {{ week_data.winner[0] }}
                                     {% else %}
                                     -
