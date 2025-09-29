@@ -595,7 +595,7 @@
                     <div class="leader-info">
                         ${leaderData.leader ?
                             `<span class="leader-name">🏆 ${leaderData.leader}</span>
-                             <span class="leader-score">${leaderData.score} Punkte</span>` :
+                             <span class="leader-score">${leaderData.score === '?' ? '🤫 Punkte versteckt' : leaderData.score + ' Punkte'}</span>` :
                             '<span class="no-leader">Noch keine Daten</span>'}
                     </div>
                 `;

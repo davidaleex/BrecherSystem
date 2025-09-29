@@ -558,9 +558,10 @@ def get_current_week_leaders():
     current_scoreboard_week = get_scoreboard_week()
     current_week = get_current_week_number()
     
-    # Wenn aktuelle Woche noch nicht abgeschlossen ist, zeige keine Leaders
+    # Wenn aktuelle Woche noch nicht abgeschlossen ist, zeige Leaders OHNE Punkte! 😎
     if current_week > current_scoreboard_week:
-        # Laufende Woche - keine Leaders anzeigen
+        # Laufende Woche - Leaders zeigen aber KEINE Punkte verraten!
+        week_key = f'KW{current_week}'
         leaders = {}
         # Backend/Frontend Mapping für Leaders (ALLE 12 Kategorien)
         backend_categories = ['Gym', 'Food', 'Supps', 'Sleep', 'FH', 'Steps', 'Hausarbeit', 'Work', 'Study', 'Fehler', 'Cold Plunge', 'PB']
@@ -573,12 +574,37 @@ def get_current_week_leaders():
         
         for backend_category in backend_categories:
             frontend_category = frontend_names.get(backend_category, backend_category)
-            leaders[frontend_category] = {
-                'leader': None,
-                'score': 0,
-                'scores': {person: 0 for person in NAMES},
-                'status': 'In Progress'  # Woche läuft noch
-            }
+            category_scores = {}
+            
+            # Berechne echte Führung für laufende Woche
+            for person in NAMES:
+                person_data = data_store.get(week_key, {}).get(person, {})
+                weekly_points = 0
+                
+                for day in DAYS:
+                    day_data = person_data.get(day, {})
+                    value = day_data.get(backend_category, '')
+                    points = calculate_points(backend_category, value)
+                    weekly_points += points
+                    
+                category_scores[person] = round(weekly_points, 2)
+            
+            # Finde Führenden ABER verstecke die Punkte! 😏
+            if any(score > 0 for score in category_scores.values()):
+                leader = max(category_scores.items(), key=lambda x: x[1])
+                leaders[frontend_category] = {
+                    'leader': leader[0],  # Name des Führenden zeigen ✅
+                    'score': '?',  # Punkte verstecken 🤫
+                    'scores': {person: '?' for person in NAMES},  # Alle Punkte verstecken
+                    'status': 'In Progress - Leader ohne Punkte!'  # Status
+                }
+            else:
+                leaders[frontend_category] = {
+                    'leader': None,
+                    'score': '?',
+                    'scores': {person: '?' for person in NAMES},
+                    'status': 'In Progress - Noch keine Daten'
+                }
         return leaders
     
     # Woche ist abgeschlossen - normale Leader-Berechnung
