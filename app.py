@@ -490,11 +490,17 @@ def get_category_data_for_charts():
     """
     category_data = {}
 
-    # Relevante Kategorien für Charts (Backend -> Frontend Mapping)
-    # Backend categories: ['Gym', 'Food', 'Sleep', 'FH', 'Steps', 'Work']
-    # Frontend erwartet: ['Gym', 'Food', 'Sleep', 'Study', 'Steps', 'Work']
-    backend_categories = ['Gym', 'Food', 'Sleep', 'FH', 'Steps', 'Work']
-    frontend_names = {'FH': 'Study'}  # FH -> Study für Frontend
+    # ALLE Kategorien für Charts (Backend -> Frontend Mapping)
+    # Alle 12 Backend categories: ['Gym', 'Food', 'Supps', 'Sleep', 'FH', 'Steps', 'Hausarbeit', 'Work', 'Study', 'Fehler', 'Cold Plunge', 'PB']
+    backend_categories = ['Gym', 'Food', 'Supps', 'Sleep', 'FH', 'Steps', 'Hausarbeit', 'Work', 'Study', 'Fehler', 'Cold Plunge', 'PB']
+    
+    # Frontend-Namen Mapping (falls nötig)
+    frontend_names = {
+        'FH': 'FH (University)',  # FH bleibt FH
+        'Supps': 'Supplements', 
+        'Cold Plunge': 'Cold Plunge',
+        'PB': 'Personal Business'
+    }
     
     # Bestimme welche Woche aktuell im Scoreboard angezeigt wird (abgeschlossene Wochen)
     current_scoreboard_week = get_scoreboard_week()
@@ -556,9 +562,14 @@ def get_current_week_leaders():
     if current_week > current_scoreboard_week:
         # Laufende Woche - keine Leaders anzeigen
         leaders = {}
-        # Backend/Frontend Mapping für Leaders
-        backend_categories = ['Gym', 'Food', 'Sleep', 'FH', 'Steps', 'Work']
-        frontend_names = {'FH': 'Study'}  # FH -> Study für Frontend
+        # Backend/Frontend Mapping für Leaders (ALLE 12 Kategorien)
+        backend_categories = ['Gym', 'Food', 'Supps', 'Sleep', 'FH', 'Steps', 'Hausarbeit', 'Work', 'Study', 'Fehler', 'Cold Plunge', 'PB']
+        frontend_names = {
+            'FH': 'FH (University)',
+            'Supps': 'Supplements', 
+            'Cold Plunge': 'Cold Plunge',
+            'PB': 'Personal Business'
+        }
         
         for backend_category in backend_categories:
             frontend_category = frontend_names.get(backend_category, backend_category)
@@ -573,8 +584,13 @@ def get_current_week_leaders():
     # Woche ist abgeschlossen - normale Leader-Berechnung
     week_key = f'KW{current_scoreboard_week}'
     leaders = {}
-    backend_categories = ['Gym', 'Food', 'Sleep', 'FH', 'Steps', 'Work']
-    frontend_names = {'FH': 'Study'}  # FH -> Study für Frontend
+    backend_categories = ['Gym', 'Food', 'Supps', 'Sleep', 'FH', 'Steps', 'Hausarbeit', 'Work', 'Study', 'Fehler', 'Cold Plunge', 'PB']
+    frontend_names = {
+        'FH': 'FH (University)',
+        'Supps': 'Supplements', 
+        'Cold Plunge': 'Cold Plunge',
+        'PB': 'Personal Business'
+    }
 
     for backend_category in backend_categories:
         frontend_category = frontend_names.get(backend_category, backend_category)

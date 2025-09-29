@@ -247,10 +247,17 @@
                         <canvas id="sleepChart" width="400" height="200"></canvas>
                     </div>
                 </div>
+                <!-- ALLE 12 KATEGORIEN ALS CHARTS -->
                 <div class="chart-card">
-                    <h3><i class="fas fa-book"></i> Study Progress</h3>
+                    <h3><i class="fas fa-pills"></i> Supplements</h3>
                     <div class="chart-container">
-                        <canvas id="studyChart" width="400" height="200"></canvas>
+                        <canvas id="supplementsChart" width="400" height="200"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <h3><i class="fas fa-graduation-cap"></i> FH (University)</h3>
+                    <div class="chart-container">
+                        <canvas id="fhUniversityChart" width="400" height="200"></canvas>
                     </div>
                 </div>
                 <div class="chart-card">
@@ -260,9 +267,39 @@
                     </div>
                 </div>
                 <div class="chart-card">
+                    <h3><i class="fas fa-home"></i> Hausarbeit</h3>
+                    <div class="chart-container">
+                        <canvas id="hausarbeitChart" width="400" height="200"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
                     <h3><i class="fas fa-dollar-sign"></i> Work Earnings</h3>
                     <div class="chart-container">
                         <canvas id="workChart" width="400" height="200"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <h3><i class="fas fa-book-open"></i> Study (Personal)</h3>
+                    <div class="chart-container">
+                        <canvas id="studyChart" width="400" height="200"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <h3><i class="fas fa-exclamation-triangle"></i> Fehler</h3>
+                    <div class="chart-container">
+                        <canvas id="fehlerChart" width="400" height="200"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <h3><i class="fas fa-snowflake"></i> Cold Plunge</h3>
+                    <div class="chart-container">
+                        <canvas id="coldPlungeChart" width="400" height="200"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <h3><i class="fas fa-briefcase"></i> Personal Business</h3>
+                    <div class="chart-container">
+                        <canvas id="personalBusinessChart" width="400" height="200"></canvas>
                     </div>
                 </div>
             </div>
@@ -483,8 +520,12 @@
                 return;
             }
 
-            // Check if canvas elements exist
-            const canvasElements = ['gymChart', 'foodChart', 'sleepChart', 'studyChart', 'stepsChart', 'workChart'];
+            // Check if canvas elements exist (ALLE 12 Charts)
+            const canvasElements = [
+                'gymChart', 'foodChart', 'supplementsChart', 'sleepChart', 'fhUniversityChart', 
+                'stepsChart', 'hausarbeitChart', 'workChart', 'studyChart', 'fehlerChart', 
+                'coldPlungeChart', 'personalBusinessChart'
+            ];
             const missingElements = canvasElements.filter(id => !document.getElementById(id));
             if (missingElements.length > 0) {
                 console.log('Charts not ready yet, canvas elements missing:', missingElements);
@@ -497,13 +538,19 @@
                     const categoryData = data.category_data;
                     const leaders = data.current_leaders;
 
-                    // Create charts for each category
+                    // Create charts for ALL 12 categories
                     createChart('gymChart', 'Gym', categoryData.Gym);
                     createChart('foodChart', 'Food', categoryData.Food);
+                    createChart('supplementsChart', 'Supplements', categoryData.Supplements);
                     createChart('sleepChart', 'Sleep', categoryData.Sleep);
-                    createChart('studyChart', 'Study', categoryData.Study);
+                    createChart('fhUniversityChart', 'FH (University)', categoryData['FH (University)']);
                     createChart('stepsChart', 'Steps', categoryData.Steps);
+                    createChart('hausarbeitChart', 'Hausarbeit', categoryData.Hausarbeit);
                     createChart('workChart', 'Work', categoryData.Work);
+                    createChart('studyChart', 'Study', categoryData.Study);
+                    createChart('fehlerChart', 'Fehler', categoryData.Fehler);
+                    createChart('coldPlungeChart', 'Cold Plunge', categoryData['Cold Plunge']);
+                    createChart('personalBusinessChart', 'Personal Business', categoryData['Personal Business']);
 
                     // Update current week leaders
                     updateCurrentLeaders(leaders);
@@ -528,10 +575,16 @@
                 const categoryIcons = {
                     'Gym': 'fas fa-dumbbell',
                     'Food': 'fas fa-utensils',
+                    'Supplements': 'fas fa-pills',
                     'Sleep': 'fas fa-bed',
-                    'Study': 'fas fa-book',
+                    'FH (University)': 'fas fa-graduation-cap',
                     'Steps': 'fas fa-walking',
-                    'Work': 'fas fa-dollar-sign'
+                    'Hausarbeit': 'fas fa-home',
+                    'Work': 'fas fa-dollar-sign',
+                    'Study': 'fas fa-book-open',
+                    'Fehler': 'fas fa-exclamation-triangle',
+                    'Cold Plunge': 'fas fa-snowflake',
+                    'Personal Business': 'fas fa-briefcase'
                 };
 
                 leaderCard.innerHTML = `
