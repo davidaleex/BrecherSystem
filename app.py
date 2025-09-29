@@ -579,6 +579,51 @@ def is_scoreboard_visible():
 
     return False
 
+def calculate_user_statistics(user_name):
+    """Berechne Statistiken für einen User: Wins, Gesamtpunkte, absolvierte Wochen"""
+    if user_name not in NAMES:
+        return {'wins': 0, 'total_points': 0, 'completed_weeks': 0}
+
+    wins = 0
+    total_points = 0
+    completed_weeks = 0
+
+    for week in get_weeks_list():
+        week_key = f'KW{week}'
+
+        # Berechne Gesamtpunkte für diese Woche
+        week_points = calculate_weekly_total(user_name, week_key)
+        total_points += week_points
+
+        # Prüfe ob User diese Woche gewonnen hat
+        week_scoreboard = get_weekly_scoreboard(week_key)
+        if week_scoreboard and week_scoreboard[0][0] == user_name:
+            wins += 1
+
+        # Prüfe ob Woche "absolviert" (alle Kategorien ausgefüllt)
+        week_data = data_store.get(week_key, {})
+        user_data = week_data.get(user_name, {})
+
+        week_completed = True
+        for day in DAYS:
+            day_data = user_data.get(day, {})
+            for category in CATEGORIES:
+                value = day_data.get(category, '')
+                if not value or value.strip() == '':
+                    week_completed = False
+                    break
+            if not week_completed:
+                break
+
+        if week_completed:
+            completed_weeks += 1
+
+    return {
+        'wins': wins,
+        'total_points': round(total_points, 2),
+        'completed_weeks': completed_weeks
+    }
+
 def get_scoreboard_week():
     """Bestimme welche Woche im Scoreboard angezeigt werden soll"""
     now = datetime.now()
@@ -790,14 +835,32 @@ def profile():
     if current_user:
         # Firebase user with Firestore data
         user_info = current_user  # Firestore data includes all fields
+
+        # Map Firebase user to our system names for statistics
+        user_name = None
+        if current_user.get('email'):
+            email = current_user['email'].lower()
+            if 'david' in email:
+                user_name = 'David'
+            elif 'cedric.müller3' in email or 'cedric.mueller3' in email:
+                user_name = 'Müller'
+            elif 'cédric.neuhaus' in email or 'cedric.neuhaus' in email:
+                user_name = 'Cedric'
+
+        # Calculate user statistics
+        if user_name:
+            user_stats = calculate_user_statistics(user_name)
+        else:
+            user_stats = {'wins': 0, 'total_points': 0, 'completed_weeks': 0}
     else:
         # Legacy user fallback
         user_info = {
             'display_name': 'Legacy User',
             'email': None
         }
+        user_stats = {'wins': 0, 'total_points': 0, 'completed_weeks': 0}
 
-    return render_template('profile.html', user=user_info)
+    return render_template('profile.html', user=user_info, stats=user_stats)
 
 @app.route('/')
 def index():

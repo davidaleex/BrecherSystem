@@ -23,7 +23,10 @@
       "Bash(/bashes)",
       "Bash(lsof:*)",
       "Bash(git log:*)",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "Bash(PORT=8090 python:*)",
+      "Bash(PORT=3000 python app.py)",
+      "Bash(git restore:*)"
     ],
     "deny": [],
     "ask": []

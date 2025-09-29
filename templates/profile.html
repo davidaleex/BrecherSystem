@@ -289,7 +289,7 @@
                 <div class="stat-icon">
                     <i class="fas fa-calendar-week"></i>
                 </div>
-                <div class="stat-number">0</div>
+                <div class="stat-number">{{ stats.completed_weeks }}</div>
                 <div class="stat-label">Wochen absolviert</div>
             </div>
 
@@ -297,15 +297,15 @@
                 <div class="stat-icon">
                     <i class="fas fa-trophy"></i>
                 </div>
-                <div class="stat-number">0</div>
-                <div class="stat-label">Erfolge erreicht</div>
+                <div class="stat-number">{{ stats.wins }}</div>
+                <div class="stat-label">Siege erreicht</div>
             </div>
 
             <div class="stat-card">
                 <div class="stat-icon">
                     <i class="fas fa-chart-line"></i>
                 </div>
-                <div class="stat-number">0</div>
+                <div class="stat-number">{{ stats.total_points }}</div>
                 <div class="stat-label">Gesamtpunkte</div>
             </div>
         </div>
