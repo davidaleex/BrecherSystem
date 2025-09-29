@@ -490,8 +490,11 @@ def get_category_data_for_charts():
     """
     category_data = {}
 
-    # Relevante Kategorien für Charts (updated names)
-    chart_categories = ['Gym', 'Food', 'Sleep', 'FH', 'Steps', 'Work']
+    # Relevante Kategorien für Charts (Backend -> Frontend Mapping)
+    # Backend categories: ['Gym', 'Food', 'Sleep', 'FH', 'Steps', 'Work']
+    # Frontend erwartet: ['Gym', 'Food', 'Sleep', 'Study', 'Steps', 'Work']
+    backend_categories = ['Gym', 'Food', 'Sleep', 'FH', 'Steps', 'Work']
+    frontend_names = {'FH': 'Study'}  # FH -> Study für Frontend
     
     # Bestimme welche Woche aktuell im Scoreboard angezeigt wird (abgeschlossene Wochen)
     current_scoreboard_week = get_scoreboard_week()
@@ -499,8 +502,11 @@ def get_category_data_for_charts():
     # Nur Wochen mit tatsächlichen Daten verwenden UND die abgeschlossen sind
     weeks_with_data = [week for week in get_weeks_with_data() if week <= current_scoreboard_week]
 
-    for category in chart_categories:
-        category_data[category] = {
+    for backend_category in backend_categories:
+        # Frontend-Namen für Kategorie bestimmen
+        frontend_category = frontend_names.get(backend_category, backend_category)
+        
+        category_data[frontend_category] = {
             'weeks': [],
             'David': [],
             'Cedric': [],
@@ -510,20 +516,20 @@ def get_category_data_for_charts():
         # Für jede abgeschlossene Woche mit Daten die Kategorie-Punkte sammeln
         for week in weeks_with_data:
             week_key = f'KW{week}'
-            category_data[category]['weeks'].append(f'KW{week}')
+            category_data[frontend_category]['weeks'].append(f'KW{week}')
 
             for person in NAMES:
                 weekly_category_points = 0
                 person_data = data_store.get(week_key, {}).get(person, {})
 
-                # Berechne Wochenpunkte für diese Kategorie
+                # Berechne Wochenpunkte für diese Kategorie (Backend-Namen verwenden!)
                 for day in DAYS:
                     day_data = person_data.get(day, {})
-                    value = day_data.get(category, '')
-                    points = calculate_points(category, value)
+                    value = day_data.get(backend_category, '')  # Backend-Kategorie für Datenabfrage
+                    points = calculate_points(backend_category, value)  # Backend-Kategorie für Punkteberechnung
                     weekly_category_points += points
 
-                category_data[category][person].append(round(weekly_category_points, 2))
+                category_data[frontend_category][person].append(round(weekly_category_points, 2))
 
     return category_data
 
@@ -550,9 +556,13 @@ def get_current_week_leaders():
     if current_week > current_scoreboard_week:
         # Laufende Woche - keine Leaders anzeigen
         leaders = {}
-        chart_categories = ['Gym', 'Food', 'Sleep', 'FH', 'Steps', 'Work']
-        for category in chart_categories:
-            leaders[category] = {
+        # Backend/Frontend Mapping für Leaders
+        backend_categories = ['Gym', 'Food', 'Sleep', 'FH', 'Steps', 'Work']
+        frontend_names = {'FH': 'Study'}  # FH -> Study für Frontend
+        
+        for backend_category in backend_categories:
+            frontend_category = frontend_names.get(backend_category, backend_category)
+            leaders[frontend_category] = {
                 'leader': None,
                 'score': 0,
                 'scores': {person: 0 for person in NAMES},
@@ -563,9 +573,11 @@ def get_current_week_leaders():
     # Woche ist abgeschlossen - normale Leader-Berechnung
     week_key = f'KW{current_scoreboard_week}'
     leaders = {}
-    chart_categories = ['Gym', 'Food', 'Sleep', 'FH', 'Steps', 'Work']
+    backend_categories = ['Gym', 'Food', 'Sleep', 'FH', 'Steps', 'Work']
+    frontend_names = {'FH': 'Study'}  # FH -> Study für Frontend
 
-    for category in chart_categories:
+    for backend_category in backend_categories:
+        frontend_category = frontend_names.get(backend_category, backend_category)
         category_scores = {}
 
         for person in NAMES:
@@ -574,8 +586,8 @@ def get_current_week_leaders():
 
             for day in DAYS:
                 day_data = person_data.get(day, {})
-                value = day_data.get(category, '')
-                points = calculate_points(category, value)
+                value = day_data.get(backend_category, '')  # Backend-Namen für Datenabfrage
+                points = calculate_points(backend_category, value)  # Backend-Namen für Punkteberechnung
                 weekly_points += points
 
             category_scores[person] = round(weekly_points, 2)
@@ -583,14 +595,14 @@ def get_current_week_leaders():
         # Finde Führenden
         if any(score > 0 for score in category_scores.values()):
             leader = max(category_scores.items(), key=lambda x: x[1])
-            leaders[category] = {
+            leaders[frontend_category] = {  # Frontend-Namen für Output
                 'leader': leader[0],
                 'score': leader[1],
                 'scores': category_scores,
                 'status': 'Final'  # Woche ist abgeschlossen
             }
         else:
-            leaders[category] = {
+            leaders[frontend_category] = {  # Frontend-Namen für Output
                 'leader': None,
                 'score': 0,
                 'scores': category_scores,
