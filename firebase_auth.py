@@ -52,10 +52,18 @@ def init_firebase():
 def verify_firebase_token(id_token):
     """Verify Firebase ID token and return user info"""
     try:
-        print(f"🔥 Starting Firebase token verification")
+        print(f"🔥 Starting Firebase token verification (token length: {len(id_token) if id_token else 0})")
+
+        if not id_token:
+            print(f"❌ No token provided")
+            return None
+
         if not firebase_app:
             print(f"🔥 Firebase app not initialized, initializing...")
-            init_firebase()
+            init_result = init_firebase()
+            if not init_result:
+                print(f"❌ Firebase initialization failed")
+                return None
 
         if not firebase_app:
             print(f"❌ Firebase app still not available after init attempt")
@@ -65,7 +73,8 @@ def verify_firebase_token(id_token):
 
         # Verify the ID token
         decoded_token = auth.verify_id_token(id_token)
-        print(f"🔥 Token verified successfully, UID: {decoded_token.get('uid')}")
+        print(f"✅ Token verified successfully")
+        print(f"🔥 Token claims: uid={decoded_token.get('uid')}, email={decoded_token.get('email')}, name={decoded_token.get('name')}")
 
         user_info = {
             'firebase_uid': decoded_token['uid'],
@@ -75,9 +84,15 @@ def verify_firebase_token(id_token):
             'profile_picture': decoded_token.get('picture')
         }
 
-        print(f"🔥 User info extracted: email={user_info['email']}, verified={user_info['email_verified']}")
+        print(f"✅ User info extracted successfully: email={user_info['email']}, verified={user_info['email_verified']}")
         return user_info
 
+    except auth.InvalidIdTokenError as e:
+        print(f"❌ Invalid Firebase token: {e}")
+        return None
+    except auth.ExpiredIdTokenError as e:
+        print(f"❌ Expired Firebase token: {e}")
+        return None
     except Exception as e:
         print(f"❌ Firebase token verification failed: {e}")
         import traceback

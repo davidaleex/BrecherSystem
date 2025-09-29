@@ -480,6 +480,12 @@ def login():
 
     return render_template('login.html')
 
+
+@app.route('/login-fixed')
+def login_fixed():
+    """Verbesserte Firebase Login-Seite mit Debug-Info"""
+    return render_template('login_fixed.html')
+
 @app.route('/logout')
 def logout():
     """Logout-Funktion"""
@@ -504,23 +510,26 @@ def verify_firebase_auth():
             print(f"❌ No ID token provided")
             return jsonify({'error': 'ID token required'}), 400
 
-        print(f"🔐 Verifying Firebase token (length: {len(id_token)})")
+        print(f"🔐 Verifying Firebase token (length: {len(id_token)})", flush=True)
 
         # Verify Firebase token
+        print(f"🔐 Calling verify_firebase_token...", flush=True)
         user_info = verify_firebase_token(id_token)
         if not user_info:
-            print(f"❌ Firebase token verification failed")
+            print(f"❌ Firebase token verification failed", flush=True)
             return jsonify({'error': 'Invalid token'}), 401
 
-        print(f"✅ Firebase token verified for user: {user_info.get('email')}")
+        print(f"✅ Firebase token verified for user: {user_info.get('email')}", flush=True)
 
         # Create or update user in database
+        print(f"🔐 Creating/updating user in database...", flush=True)
         user = create_user(
             firebase_uid=user_info['firebase_uid'],
             email=user_info['email'],
             display_name=user_info['display_name'],
             profile_picture_url=user_info['profile_picture']
         )
+        print(f"✅ User created/updated: {user}", flush=True)
 
         print(f"✅ User created/updated in database: {user}")
 
@@ -592,6 +601,13 @@ def firebase_config():
         'messagingSenderId': app_config.FIREBASE_WEB_MESSAGING_SENDER_ID or '123456789',
         'appId': app_config.FIREBASE_WEB_APP_ID or '1:123456789:web:demo'
     })
+
+
+@app.route('/test-auth')
+def test_auth():
+    """Firebase authentication test page"""
+    with open('test_auth.html', 'r') as f:
+        return f.read()
 
 
 @app.route('/profile')

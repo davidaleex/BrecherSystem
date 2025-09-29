@@ -153,20 +153,35 @@
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 
-        // Firebase Config
-        const config = {
-            apiKey: "AIzaSyBdRZutu3r-MNaygHalAD9azHJgRcJnGyo",
-            authDomain: "brechersystem.firebaseapp.com",
-            projectId: "brechersystem",
-            storageBucket: "brechersystem.firebasestorage.app",
-            messagingSenderId: "416876035679",
-            appId: "1:416876035679:web:6a2b775b412d8e89e9a5ea"
-        };
+        // Firebase Config (loaded dynamically from backend)
+        let app, auth;
 
-        const app = initializeApp(config);
-        const auth = getAuth(app);
+        async function initFirebase() {
+            try {
+                console.log("🔥 Loading Firebase config from backend...");
+                const response = await fetch('/api/firebase-config');
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
 
-        console.log("Firebase initialized without auto-login");
+                const config = await response.json();
+                console.log("🔥 Firebase config loaded:", config.projectId);
+
+                app = initializeApp(config);
+                auth = getAuth(app);
+
+                console.log("✅ Firebase initialized successfully");
+                return true;
+            } catch (error) {
+                console.error("❌ Firebase initialization failed:", error);
+                const message = document.getElementById('message');
+                message.innerHTML = '<div class="error">Firebase Initialisierung fehlgeschlagen: ' + error.message + '</div>';
+                return false;
+            }
+        }
+
+        // Initialize Firebase on page load
+        initFirebase();
 
         // Global Login Function
         window.doLogin = async function() {
@@ -179,15 +194,25 @@
                 return;
             }
 
-            try {
-                console.log("Starting login for:", email);
-                const userCredential = await signInWithEmailAndPassword(auth, email, password);
-                console.log("Login successful:", userCredential.user);
+            // Check if Firebase is initialized
+            if (!auth) {
+                message.innerHTML = '<div class="error">Firebase nicht initialisiert. Seite neu laden.</div>';
+                return;
+            }
 
-                message.innerHTML = '<div class="success">Login erfolgreich! Weiterleitung...</div>';
+            try {
+                console.log("🔐 Starting login for:", email);
+                message.innerHTML = '<div style="color: blue;">Anmeldung läuft...</div>';
+
+                const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                console.log("✅ Login successful:", userCredential.user.uid);
+
+                message.innerHTML = '<div class="success">Login erfolgreich! Token wird verifiziert...</div>';
 
                 // Token an Backend senden
                 const token = await userCredential.user.getIdToken();
+                console.log("🔐 Sending token to backend (length:", token.length, ")");
+
                 const response = await fetch('/api/auth/verify', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -195,14 +220,18 @@
                 });
 
                 const data = await response.json();
+                console.log("🔐 Backend response:", data);
+
                 if (data.success) {
-                    window.location.href = '/';
+                    message.innerHTML = '<div class="success">Login erfolgreich! Weiterleitung...</div>';
+                    setTimeout(() => window.location.href = '/', 1000);
                 } else {
-                    message.innerHTML = '<div class="error">Backend Fehler: ' + data.error + '</div>';
+                    console.error("Backend verification failed:", data);
+                    message.innerHTML = '<div class="error">Backend Fehler: ' + (data.error || 'Unbekannter Fehler') + '</div>';
                 }
 
             } catch (error) {
-                console.error("Login error:", error);
+                console.error("❌ Login error:", error);
                 let errorMsg = "Login fehlgeschlagen: ";
                 if (error.code === 'auth/user-not-found') {
                     errorMsg += "Benutzer nicht gefunden. Registriere dich zuerst.";
@@ -210,6 +239,10 @@
                     errorMsg += "Falsches Passwort.";
                 } else if (error.code === 'auth/invalid-email') {
                     errorMsg += "Ungültige E-Mail.";
+                } else if (error.code === 'auth/invalid-credential') {
+                    errorMsg += "Ungültige Anmeldedaten.";
+                } else if (error.code === 'auth/network-request-failed') {
+                    errorMsg += "Netzwerkfehler. Prüfe deine Internetverbindung.";
                 } else {
                     errorMsg += error.message;
                 }
@@ -234,40 +267,57 @@
                 return;
             }
 
-            try {
-                console.log("Starting registration for:", email);
-                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-                console.log("Registration successful:", userCredential.user);
+            // Check if Firebase is initialized
+            if (!auth) {
+                message.innerHTML = '<div class="error">Firebase nicht initialisiert. Seite neu laden.</div>';
+                return;
+            }
 
-                message.innerHTML = '<div class="success">Registrierung erfolgreich! Anmeldung...</div>';
+            try {
+                console.log("🔐 Starting registration for:", email);
+                message.innerHTML = '<div style="color: blue;">Registrierung läuft...</div>';
+
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                console.log("✅ Registration successful:", userCredential.user.uid);
+
+                message.innerHTML = '<div class="success">Registrierung erfolgreich! Profil wird erstellt...</div>';
+
+                // Update user profile with display name
+                import { updateProfile } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+                await updateProfile(userCredential.user, { displayName: name });
 
                 // Token an Backend senden
                 const token = await userCredential.user.getIdToken();
+                console.log("🔐 Sending registration token to backend");
+
                 const response = await fetch('/api/auth/verify', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        idToken: token,
-                        displayName: name
-                    })
+                    body: JSON.stringify({ idToken: token })
                 });
 
                 const data = await response.json();
+                console.log("🔐 Backend registration response:", data);
+
                 if (data.success) {
-                    window.location.href = '/';
+                    message.innerHTML = '<div class="success">Registrierung erfolgreich! Weiterleitung...</div>';
+                    setTimeout(() => window.location.href = '/', 1000);
                 } else {
-                    message.innerHTML = '<div class="error">Backend Fehler: ' + data.error + '</div>';
+                    console.error("Backend verification failed:", data);
+                    message.innerHTML = '<div class="error">Backend Fehler: ' + (data.error || 'Unbekannter Fehler') + '</div>';
                 }
 
             } catch (error) {
-                console.error("Registration error:", error);
+                console.error("❌ Registration error:", error);
                 let errorMsg = "Registrierung fehlgeschlagen: ";
                 if (error.code === 'auth/email-already-in-use') {
                     errorMsg += "E-Mail bereits registriert. Versuche Login.";
                 } else if (error.code === 'auth/weak-password') {
-                    errorMsg += "Passwort zu schwach.";
+                    errorMsg += "Passwort zu schwach (mindestens 6 Zeichen).";
                 } else if (error.code === 'auth/invalid-email') {
-                    errorMsg += "Ungültige E-Mail.";
+                    errorMsg += "Ungültige E-Mail-Adresse.";
+                } else if (error.code === 'auth/network-request-failed') {
+                    errorMsg += "Netzwerkfehler. Prüfe deine Internetverbindung.";
                 } else {
                     errorMsg += error.message;
                 }

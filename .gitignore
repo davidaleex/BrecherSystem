@@ -11,3 +11,14 @@ pip-delete-this-directory.txt
 .DS_Store
 *.log
 .env
+
+# Firebase Service Account Keys (sensitive!)
+*firebase-adminsdk*.json
+firebase-service-account.json
+
+# Database files
+*.db
+brecher_system.db
+
+# Test files
+test_auth.html
