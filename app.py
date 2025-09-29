@@ -967,8 +967,7 @@ def week_view(week_num):
 
         week_data[person] = person_data
 
-    # Scoreboard
-    scoreboard = get_weekly_scoreboard(week_key)
+    # Scoreboard nicht mehr nötig für week view
 
     # Get current user info for personalization
     current_user = get_current_user()
@@ -990,9 +989,7 @@ def week_view(week_num):
                          names=NAMES,
                          categories=CATEGORIES,
                          days=DAYS,
-                         scoreboard=scoreboard,
-                         current_user_name=current_user_name,
-                         show_scoreboards=is_scoreboard_visible())
+                         current_user_name=current_user_name)
 
 @app.route('/update_cell', methods=['POST'])
 def update_cell():
@@ -1096,8 +1093,7 @@ def update_cell():
 
         fehler_bonus = 2 if all_days_filled_and_zero else 0
 
-        # Scoreboard neu berechnen
-        scoreboard = get_weekly_scoreboard(week)
+        # Scoreboard nur für Dashboard berechnen, nicht für week view
 
         # Berechne Bonus für alle Personen (da sich Bedingungen ändern können)
         all_bonus_data = {}
@@ -1162,8 +1158,7 @@ def update_cell():
             'bonus_color': 'green' if bonus_points > 0 else 'white',
             'gym_bonus': gym_bonus,
             'fehler_bonus': fehler_bonus,
-            'all_bonus_data': all_bonus_data,
-            'scoreboard': scoreboard
+            'all_bonus_data': all_bonus_data
         }
 
         # Wenn Fehler-Kategorie geändert wurde, berechne alle Fehler-Zellen dieser Person neu

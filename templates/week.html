@@ -214,33 +214,6 @@
             </table>
         </div>
 
-        {% if show_scoreboards %}
-        <div class="scoreboard">
-            <h2>🏆 SCOREBOARD KW {{ week_num }}</h2>
-            <div class="score-table" id="scoreboard">
-                {% for person, score in scoreboard %}
-                <div class="score-row position-{{ loop.index }}">
-                    <span class="position">{{ loop.index }}.</span>
-                    <span class="name">{{ person }}</span>
-                    <span class="score">{{ score }} Punkte</span>
-                    {% if loop.index == 1 %}
-                    <span class="trophy">🥇</span>
-                    {% elif loop.index == 2 %}
-                    <span class="trophy">🥈</span>
-                    {% elif loop.index == 3 %}
-                    <span class="trophy">🥉</span>
-                    {% endif %}
-                </div>
-                {% endfor %}
-            </div>
-        </div>
-        {% else %}
-        <div class="scoreboard-hidden">
-            <h2>🔒 SCOREBOARD GESPERRT</h2>
-            <p>Das Scoreboard wird eine ganze Woche lang angezeigt (Sonntag 22:00 - nächster Sonntag 22:00)!</p>
-            <p>⏰ Nächste Freigabe: Sonntag 22:00 Uhr</p>
-        </div>
-        {% endif %}
 
         <div class="actions">
             <button onclick="saveData()" class="save-button">💾 Daten speichern</button>
@@ -341,8 +314,7 @@
                     });
                 }
 
-                // Update scoreboard
-                updateScoreboard(result.scoreboard);
+                // Scoreboard updates not needed on week page
 
                 // Bei Fehler-Updates: Aktualisiere alle Fehler-Zellen dieser Person
                 if (result.fehler_updates) {
@@ -377,26 +349,6 @@
             });
         }
 
-        function updateScoreboard(scoreboard) {
-            const scoreboardElement = document.getElementById('scoreboard');
-            scoreboardElement.innerHTML = '';
-
-            scoreboard.forEach((entry, index) => {
-                const [person, score] = entry;
-                const trophies = ['🥇', '🥈', '🥉'];
-                const trophy = index < 3 ? trophies[index] : '';
-
-                const scoreRow = document.createElement('div');
-                scoreRow.className = `score-row position-${index + 1}`;
-                scoreRow.innerHTML = `
-                    <span class="position">${index + 1}.</span>
-                    <span class="name">${person}</span>
-                    <span class="score">${score} Punkte</span>
-                    <span class="trophy">${trophy}</span>
-                `;
-                scoreboardElement.appendChild(scoreRow);
-            });
-        }
 
         function saveData() {
             fetch('/api/save', { method: 'POST' })
