@@ -151,6 +151,61 @@
         .back-link:hover {
             color: #335c99;
         }
+
+        .profile-info {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+        }
+
+        .profile-info h3 {
+            color: #4472c4;
+            margin-bottom: 1.5rem;
+            font-size: 1.3rem;
+        }
+
+        .info-grid {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .info-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.8rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #4472c4;
+        }
+
+        .info-item i {
+            color: #4472c4;
+            width: 20px;
+            text-align: center;
+        }
+
+        .info-label {
+            font-weight: 600;
+            color: #666;
+            min-width: 120px;
+        }
+
+        .info-value {
+            color: #333;
+            font-weight: 500;
+        }
+
+        .profile-location {
+            opacity: 0.9;
+            margin-top: 0.5rem;
+        }
+
+        .profile-location i {
+            margin-right: 0.5rem;
+        }
     </style>
 </head>
 <body>
@@ -177,11 +232,54 @@
                 <p class="profile-email">{{ user.email }}</p>
             {% endif %}
 
+            {% if user.city or user.country %}
+                <p class="profile-location">
+                    <i class="fas fa-map-marker-alt"></i>
+                    {% if user.city %}{{ user.city }}{% endif %}{% if user.city and user.country %}, {% endif %}{% if user.country %}{{ user.country }}{% endif %}
+                </p>
+            {% endif %}
+
             <div class="profile-badge">
-                {% if user.type == 'firebase' %}
-                    <i class="fas fa-fire"></i> Firebase Account
-                {% else %}
-                    <i class="fas fa-key"></i> Legacy Account
+                <i class="fas fa-fire"></i> Firestore Account
+            </div>
+        </div>
+
+        <div class="profile-info">
+            <h3>Persönliche Informationen</h3>
+            <div class="info-grid">
+                {% if user.birthdate %}
+                <div class="info-item">
+                    <i class="fas fa-birthday-cake"></i>
+                    <span class="info-label">Geburtsdatum:</span>
+                    <span class="info-value">{{ user.birthdate }}</span>
+                </div>
+                {% endif %}
+
+                {% if user.gender %}
+                <div class="info-item">
+                    <i class="fas fa-venus-mars"></i>
+                    <span class="info-label">Geschlecht:</span>
+                    <span class="info-value">
+                        {% if user.gender == 'male' %}Männlich
+                        {% elif user.gender == 'female' %}Weiblich
+                        {% else %}{{ user.gender|title }}
+                        {% endif %}
+                    </span>
+                </div>
+                {% endif %}
+
+                <div class="info-item">
+                    <i class="fas fa-envelope"></i>
+                    <span class="info-label">E-Mail:</span>
+                    <span class="info-value">{{ user.email }}</span>
+                </div>
+
+                {% if user.created_at %}
+                <div class="info-item">
+                    <i class="fas fa-calendar-plus"></i>
+                    <span class="info-label">Registriert seit:</span>
+                    <span class="info-value">{{ user.created_at.strftime('%d.%m.%Y') if user.created_at else 'Unbekannt' }}</span>
+                </div>
                 {% endif %}
             </div>
         </div>

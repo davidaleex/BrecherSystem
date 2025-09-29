@@ -150,13 +150,21 @@ def require_firebase_auth(f):
 
 
 def get_current_user():
-    """Get current authenticated user info"""
+    """Get current authenticated user info from Firestore"""
     # Try Firebase user first
     if hasattr(request, 'firebase_user'):
+        firebase_uid = request.firebase_user.get('firebase_uid')
+        if firebase_uid:
+            from firestore_users import get_user_profile
+            return get_user_profile(firebase_uid)
         return request.firebase_user
 
     # Fallback to session
     if session.get('firebase_user'):
+        firebase_uid = session['firebase_user'].get('firebase_uid')
+        if firebase_uid:
+            from firestore_users import get_user_profile
+            return get_user_profile(firebase_uid)
         return session['firebase_user']
 
     return None

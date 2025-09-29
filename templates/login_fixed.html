@@ -111,7 +111,7 @@
         <div id="register-tab" class="tab-content">
             <div class="form-group">
                 <label for="register-name">Name:</label>
-                <input type="text" id="register-name" placeholder="Dein Name" required>
+                <input type="text" id="register-name" placeholder="Dein vollständiger Name" required>
             </div>
 
             <div class="form-group">
@@ -122,6 +122,31 @@
             <div class="form-group">
                 <label for="register-password">Passwort:</label>
                 <input type="password" id="register-password" placeholder="Mindestens 6 Zeichen" required minlength="6">
+            </div>
+
+            <div class="form-group">
+                <label for="register-birthdate">Geburtsdatum:</label>
+                <input type="date" id="register-birthdate">
+            </div>
+
+            <div class="form-group">
+                <label for="register-gender">Geschlecht:</label>
+                <select id="register-gender">
+                    <option value="">Bitte wählen</option>
+                    <option value="male">Männlich</option>
+                    <option value="female">Weiblich</option>
+                    <option value="other">Divers</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="register-city">Stadt:</label>
+                <input type="text" id="register-city" placeholder="Deine Stadt">
+            </div>
+
+            <div class="form-group">
+                <label for="register-country">Land:</label>
+                <input type="text" id="register-country" placeholder="Dein Land" value="Schweiz">
             </div>
 
             <button type="button" id="register-btn" onclick="doRegister()" disabled>➕ REGISTRIEREN</button>
@@ -328,9 +353,13 @@
             const name = document.getElementById('register-name').value.trim();
             const email = document.getElementById('register-email').value.trim();
             const password = document.getElementById('register-password').value;
+            const birthdate = document.getElementById('register-birthdate').value;
+            const gender = document.getElementById('register-gender').value;
+            const city = document.getElementById('register-city').value.trim();
+            const country = document.getElementById('register-country').value.trim();
 
             if (!name || !email || !password) {
-                showMessage("❌ Bitte alle Felder ausfüllen!", "error");
+                showMessage("❌ Bitte alle Pflichtfelder ausfüllen!", "error");
                 return;
             }
 
@@ -363,11 +392,21 @@
                 const token = await userCredential.user.getIdToken(true);
                 log(`Token obtained for new user, length: ${token.length}`);
 
-                // Send token to backend for verification
+                // Send token and profile data to backend for verification
+                const profileData = {
+                    idToken: token,
+                    profile: {
+                        birthdate: birthdate || null,
+                        gender: gender || null,
+                        city: city || null,
+                        country: country || null
+                    }
+                };
+
                 const response = await fetch('/api/auth/verify', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ idToken: token })
+                    body: JSON.stringify(profileData)
                 });
 
                 const data = await response.json();

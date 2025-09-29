@@ -2,9 +2,10 @@ from flask import Flask, render_template, request, jsonify, redirect, url_for, s
 import json
 import os
 from datetime import datetime
-from database import get_all_data as db_get_all_data, save_data as db_save_data, get_week_data, update_entry, init_database, get_database_stats, get_all_weeks, create_user, get_user_by_firebase_uid, get_db_connection
+from database import get_all_data as db_get_all_data, save_data as db_save_data, get_week_data, update_entry, init_database, get_database_stats, get_all_weeks, get_db_connection
 from config import config
 from firebase_auth import init_firebase, verify_firebase_token, require_firebase_auth, get_current_user, is_firebase_available
+from firestore_users import create_user_profile, get_user_profile, update_user_profile
 
 app = Flask(__name__)
 
@@ -505,6 +506,7 @@ def verify_firebase_auth():
         print(f"🔐 Request data keys: {list(data.keys()) if data else 'None'}", flush=True)
 
         id_token = data.get('idToken') if data else None
+        profile_data = data.get('profile', {}) if data else {}
 
         if not id_token:
             print(f"❌ No ID token provided")
@@ -521,17 +523,28 @@ def verify_firebase_auth():
 
         print(f"✅ Firebase token verified for user: {user_info.get('email')}", flush=True)
 
-        # Create or update user in database
-        print(f"🔐 Creating/updating user in database...", flush=True)
-        user = create_user(
+        # Create or update user in Firestore
+        print(f"🔐 Creating/updating user in Firestore...", flush=True)
+
+        # Merge profile data with user info
+        extended_profile = {
+            'profile_picture': user_info['profile_picture'],
+            **profile_data  # Add birthdate, gender, city, country etc.
+        }
+
+        user = create_user_profile(
             firebase_uid=user_info['firebase_uid'],
             email=user_info['email'],
             display_name=user_info['display_name'],
-            profile_picture_url=user_info['profile_picture']
+            profile_data=extended_profile
         )
-        print(f"✅ User created/updated: {user}", flush=True)
+        print(f"✅ User created/updated in Firestore: {user is not None}", flush=True)
+        print(f"🔐 Profile data saved: {profile_data}", flush=True)
 
-        print(f"✅ User created/updated in database: {user}")
+        # Check if user creation failed
+        if user is None:
+            print(f"❌ Failed to create user profile in Firestore", flush=True)
+            return jsonify({'error': 'Failed to create user profile'}), 500
 
         # Store user info in session
         session['firebase_user'] = user_info
@@ -618,22 +631,15 @@ def profile():
 
     ensure_database_initialized()
 
-    # Get current user info
+    # Get current user info from Firestore
     current_user = get_current_user()
 
     if current_user:
-        # Firebase user
-        user_info = {
-            'type': 'firebase',
-            'uid': current_user['firebase_uid'],
-            'email': current_user['email'],
-            'display_name': current_user['display_name'],
-            'profile_picture': current_user.get('profile_picture')
-        }
+        # Firebase user with Firestore data
+        user_info = current_user  # Firestore data includes all fields
     else:
-        # Legacy user
+        # Legacy user fallback
         user_info = {
-            'type': 'legacy',
             'display_name': 'Legacy User',
             'email': None
         }
