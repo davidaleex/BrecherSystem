@@ -476,9 +476,9 @@ def login():
                 session['user_email'] = 'legacy@brechersystem.com'
                 return redirect(url_for('index'))
             else:
-                return render_template('login.html', error='Falsches altes Passwort!')
+                return render_template('login_fixed.html', error='Falsches altes Passwort!')
 
-    return render_template('login.html')
+    return render_template('login_fixed.html')
 
 
 @app.route('/login-fixed')
