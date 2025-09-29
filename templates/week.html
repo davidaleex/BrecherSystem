@@ -136,16 +136,16 @@
                     <tr>
                         <th class="day-header">Tag</th>
                         {% for person in names %}
-                        <th colspan="{{ categories|length + 1 }}" class="person-header">{{ person }}</th>
+                        <th colspan="{{ categories|length + 1 }}" class="person-header user-{{ person }}">{{ person }}</th>
                         {% endfor %}
                     </tr>
                     <tr>
                         <th></th>
                         {% for person in names %}
                             {% for category in categories %}
-                            <th class="category-header">{{ category }}</th>
+                            <th class="category-header user-{{ person }}">{{ category }}</th>
                             {% endfor %}
-                            <th class="total-header">Total</th>
+                            <th class="total-header user-{{ person }}">Total</th>
                         {% endfor %}
                     </tr>
                 </thead>
@@ -155,7 +155,7 @@
                         <td class="day-cell">{{ day }}</td>
                         {% for person in names %}
                             {% for category in categories %}
-                            <td class="data-cell {{ week_data[person][day][category]['color'] }}">
+                            <td class="data-cell {{ week_data[person][day][category]['color'] }} user-{{ person }}">
                                 <input type="text"
                                        value="{{ week_data[person][day][category]['value'] }}"
                                        data-person="{{ person }}"
@@ -167,23 +167,45 @@
                                 <span class="points">{{ week_data[person][day][category]['points'] }}</span>
                             </td>
                             {% endfor %}
-                            <td class="daily-total" id="daily-{{ person }}-{{ day }}">
+                            <td class="daily-total user-{{ person }}" id="daily-{{ person }}-{{ day }}">
                                 {{ week_data[person][day]['daily_total'] }}
                             </td>
                         {% endfor %}
                     </tr>
                     {% endfor %}
 
+                    <!-- Bonus Row -->
+                    <tr class="bonus-row">
+                        <td class="bonus-cell"><strong>Bonus</strong></td>
+                        {% for person in names %}
+                            {% for category in categories %}
+                            <td class="bonus-data-cell user-{{ person }} {% if category == 'Gym' and week_data[person]['bonus']['gym_bonus'] > 0 %}green{% elif category == 'Fehler' and week_data[person]['bonus']['fehler_bonus'] > 0 %}green{% endif %}" id="bonus-{{ person }}-{{ category }}">
+                                {% if category == 'Gym' and week_data[person]['bonus']['gym_bonus'] > 0 %}
+                                    +{{ week_data[person]['bonus']['gym_bonus'] }}
+                                    <span class="points">{{ week_data[person]['bonus']['gym_bonus'] }}</span>
+                                {% elif category == 'Fehler' and week_data[person]['bonus']['fehler_bonus'] > 0 %}
+                                    +{{ week_data[person]['bonus']['fehler_bonus'] }}
+                                    <span class="points">{{ week_data[person]['bonus']['fehler_bonus'] }}</span>
+                                {% endif %}
+                            </td>
+                            {% endfor %}
+                            <td class="bonus-total {{ week_data[person]['bonus']['color'] }} user-{{ person }}" id="bonus-{{ person }}">
+                                {{ week_data[person]['bonus']['value'] }}
+                                <span class="points">{{ week_data[person]['bonus']['points'] }}</span>
+                            </td>
+                        {% endfor %}
+                    </tr>
+
                     <!-- Wochentotal Row -->
                     <tr class="weekly-total-row">
                         <td class="week-total-header">Wochentotal</td>
                         {% for person in names %}
                             {% for category in categories %}
-                            <td class="week-category-total">
+                            <td class="week-category-total user-{{ person }}">
                                 <!-- Hier könnten Kategorie-Totals stehen -->
                             </td>
                             {% endfor %}
-                            <td class="weekly-total" id="weekly-{{ person }}">
+                            <td class="weekly-total user-{{ person }}" id="weekly-{{ person }}">
                                 {{ week_data[person]['weekly_total'] }}
                             </td>
                         {% endfor %}
@@ -192,6 +214,7 @@
             </table>
         </div>
 
+        {% if show_scoreboards %}
         <div class="scoreboard">
             <h2>🏆 SCOREBOARD KW {{ week_num }}</h2>
             <div class="score-table" id="scoreboard">
@@ -211,6 +234,13 @@
                 {% endfor %}
             </div>
         </div>
+        {% else %}
+        <div class="scoreboard-hidden">
+            <h2>🔒 SCOREBOARD GESPERRT</h2>
+            <p>Das Scoreboard wird eine ganze Woche lang angezeigt (Sonntag 22:00 - nächster Sonntag 22:00)!</p>
+            <p>⏰ Nächste Freigabe: Sonntag 22:00 Uhr</p>
+        </div>
+        {% endif %}
 
         <div class="actions">
             <button onclick="saveData()" class="save-button">💾 Daten speichern</button>
@@ -268,8 +298,76 @@
                 const weeklyTotalId = `weekly-${data.person}`;
                 document.getElementById(weeklyTotalId).textContent = result.weekly_total;
 
+                // Update bonus row for ALL persons
+                if (result.all_bonus_data) {
+                    Object.keys(result.all_bonus_data).forEach(person => {
+                        const personBonus = result.all_bonus_data[person];
+
+                        // Update total bonus
+                        const bonusId = `bonus-${person}`;
+                        const bonusCell = document.getElementById(bonusId);
+                        if (bonusCell) {
+                            bonusCell.className = `bonus-total ${personBonus.bonus_color}`;
+                            bonusCell.innerHTML = `${personBonus.bonus_points > 0 ? personBonus.bonus_points : ''}<span class="points">${personBonus.bonus_points}</span>`;
+                        }
+
+                        // Update gym bonus
+                        const bonusGymId = `bonus-${person}-Gym`;
+                        const bonusGymCell = document.getElementById(bonusGymId);
+                        if (bonusGymCell) {
+                            if (personBonus.gym_bonus > 0) {
+                                bonusGymCell.className = 'bonus-data-cell green';
+                                bonusGymCell.innerHTML = `+${personBonus.gym_bonus}<span class="points">${personBonus.gym_bonus}</span>`;
+                            } else {
+                                bonusGymCell.className = 'bonus-data-cell';
+                                bonusGymCell.innerHTML = '';
+                            }
+                        }
+
+                        // Update fehler bonus
+                        const bonusFehlerIds = [`bonus-${person}-Fehler`];
+                        bonusFehlerIds.forEach(fehlerBonusId => {
+                            const bonusFehlerCell = document.getElementById(fehlerBonusId);
+                            if (bonusFehlerCell) {
+                                if (personBonus.fehler_bonus > 0) {
+                                    bonusFehlerCell.className = 'bonus-data-cell green';
+                                    bonusFehlerCell.innerHTML = `+${personBonus.fehler_bonus}<span class="points">${personBonus.fehler_bonus}</span>`;
+                                } else {
+                                    bonusFehlerCell.className = 'bonus-data-cell';
+                                    bonusFehlerCell.innerHTML = '';
+                                }
+                            }
+                        });
+                    });
+                }
+
                 // Update scoreboard
                 updateScoreboard(result.scoreboard);
+
+                // Bei Fehler-Updates: Aktualisiere alle Fehler-Zellen dieser Person
+                if (result.fehler_updates) {
+                    Object.keys(result.fehler_updates).forEach(fehlerDay => {
+                        const fehlerUpdate = result.fehler_updates[fehlerDay];
+
+                        // Finde die Fehler-Zelle für diesen Tag
+                        const fehlerInput = document.querySelector(
+                            `input[data-person="${data.person}"][data-day="${fehlerDay}"][data-category="Fehler"]`
+                        );
+
+                        if (fehlerInput) {
+                            const fehlerCell = fehlerInput.parentElement;
+                            fehlerCell.className = 'data-cell ' + fehlerUpdate.color;
+                            fehlerCell.querySelector('.points').textContent = fehlerUpdate.points;
+
+                            // Update daily total für diesen Tag
+                            const dailyTotalId = `daily-${data.person}-${fehlerDay}`;
+                            const dailyTotalElement = document.getElementById(dailyTotalId);
+                            if (dailyTotalElement) {
+                                dailyTotalElement.textContent = fehlerUpdate.daily_total;
+                            }
+                        }
+                    });
+                }
 
                 // Kein Auto-save mehr - nur bei explizitem "Daten speichern" Klick
             })
@@ -407,9 +505,23 @@
             }
         }
 
-        // Initialize theme on page load
+        // Hide other users by default, show only current user
+        function initializeUserVisibility() {
+            const currentUser = '{{ current_user_name }}';
+            const allUsers = {{ names|tojson }};
+
+            allUsers.forEach(user => {
+                if (user !== currentUser) {
+                    const userElements = document.querySelectorAll(`.user-${user}`);
+                    userElements.forEach(el => el.style.display = 'none');
+                }
+            });
+        }
+
+        // Initialize theme and user visibility on page load
         document.addEventListener('DOMContentLoaded', function() {
             loadTheme();
+            initializeUserVisibility();
         });
     </script>
 </body>

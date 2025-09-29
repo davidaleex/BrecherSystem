@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for, session
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from database import get_all_data as db_get_all_data, save_data as db_save_data, get_week_data, update_entry, init_database, get_database_stats, get_all_weeks, get_db_connection
 from config import config
 from firebase_auth import init_firebase, verify_firebase_token, require_firebase_auth, get_current_user, is_firebase_available
@@ -20,7 +20,7 @@ WEBSITE_PASSWORD = 'AlphaBrecher'
 
 # BrecherSystem Konfiguration
 NAMES = ['David', 'Cedric', 'Müller']
-CATEGORIES = ['Gym', 'Food', 'Saps', 'Sleep', 'Study', 'Steps', 'Hausarbeit', 'Work', 'Recovery', 'Podcast/Read', 'Fehler', 'Cold Plunge', 'PB']
+CATEGORIES = ['Gym', 'Food', 'Supps', 'Sleep', 'FH', 'Steps', 'Hausarbeit', 'Work', 'Study', 'Fehler', 'Cold Plunge', 'PB']
 DAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']
 # get_weeks_list() wird jetzt dynamisch aus der Datenbank geladen
 
@@ -87,22 +87,24 @@ def initialize_data():
                         data_store[week_key][person][day][cat] = ''
 
 def calculate_points(category, value):
-    """Berechne Punkte basierend auf Kategorie und Wert (genau wie im Excel)"""
+    """Berechne Punkte basierend auf Kategorie und Wert"""
     if not value or value == '':
         return 0
 
     try:
         val = float(value)
     except:
-        if category == 'Recovery' and str(value).upper() == 'R':
-            return 1
+        # Gym 'R' (Rest Day) - 1x pro Woche erlaubt, gibt 2 Punkte
+        if category == 'Gym' and str(value).upper() == 'R':
+            return 2
         return 0
 
     if category == 'Gym':
-        return min(val * 2, 4)
+        # 1 Workout = 2 Punkte, 2 Workouts = 4 Punkte, etc.
+        return val * 2
     elif category == 'Food':
         return min(val, 3)
-    elif category == 'Saps':
+    elif category == 'Supps':  # Renamed from Saps
         return 1 if val > 0 else 0
     elif category == 'Sleep':
         if 7 <= val <= 9:
@@ -111,76 +113,61 @@ def calculate_points(category, value):
             return 3
         else:
             return 1
-    elif category == 'Study':
-        if val >= 4:
-            return 3
-        elif val >= 2:
-            return 2
-        elif val >= 1:
-            return 1
-        else:
-            return 0
+    elif category == 'FH':  # Renamed from Study - 0.5 points per hour
+        return val * 0.5
     elif category == 'Steps':
-        return int(val // 5000)
+        # New formula: (steps * 2) / 10000
+        return (val * 2) / 10000
     elif category == 'Hausarbeit':
         return val
     elif category == 'Work':
         return val / 100
-    elif category == 'Recovery':
-        return 1 if str(value).upper() == 'R' else 0
-    elif category == 'Podcast/Read':
-        return min(val * 2, 6)
+    elif category == 'Study':  # Renamed from Podcast/Read - 2 points per hour
+        return val * 2
     elif category == 'Fehler':
-        return val * -2
+        # Fehler-Berechnung erfolgt über die ganze Woche (siehe calculate_daily_total)
+        return val * -2  # Temporär, wird in calculate_daily_total überschrieben
     elif category == 'Cold Plunge':
-        return 1 if val > 0 else 0  # 1 eingetragen = 1 Punkt
+        return 1 if val > 0 else 0
     elif category == 'PB':
-        # 2h=1pt, 4h=2pt, 6h=3pt, 8h=4pt
-        if val >= 8:
-            return 4
-        elif val >= 6:
-            return 3
-        elif val >= 4:
-            return 2
-        elif val >= 2:
-            return 1
-        else:
-            return 0
-
+        # 1h = 1 Punkt (direkte Umrechnung)
+        return val
     return 0
 
 def get_cell_color(category, value, person=None, day=None, week=None):
-    """Bestimme Zellfarbe basierend auf Wert (genau wie im Excel)"""
+    """Bestimme Zellfarbe basierend auf Wert"""
     if not value or value == '':
         return 'white'
 
     try:
         val = float(value)
     except:
-        if category == 'Recovery' and str(value).upper() == 'R':
+        # Gym 'R' (Rest Day) - grün
+        if category == 'Gym' and str(value).upper() == 'R':
             return 'green'
         return 'white'
 
     if category == 'Gym':
-        if val >= 2: return 'green'
-        elif val >= 1: return 'orange'
-        else: return 'red'
+        # 1 Workout = grün, 2+ Workouts = grün
+        if val >= 1: return 'green'
+        else: return 'orange'
     elif category == 'Food':
         if val >= 3: return 'green'
         elif val >= 2: return 'orange'
         else: return 'red'
-    elif category == 'Saps':
+    elif category == 'Supps':  # Renamed from Saps
         if val >= 1: return 'green'
         else: return 'red'
     elif category == 'Sleep':
         if 7 <= val <= 9: return 'green'
         elif (6 <= val < 7) or (9 < val <= 10): return 'orange'
         else: return 'red'
-    elif category == 'Study':
+    elif category == 'FH':  # Renamed from Study - 0.5 points per hour
         if val >= 4: return 'green'
         elif val >= 2: return 'orange'
         else: return 'red'
     elif category == 'Steps':
+        # New thresholds based on new formula
         if val >= 15000: return 'green'
         elif val >= 10000: return 'orange'
         else: return 'red'
@@ -192,56 +179,117 @@ def get_cell_color(category, value, person=None, day=None, week=None):
         if val >= 300: return 'green'
         elif val >= 150: return 'orange'
         else: return 'red'
-    elif category == 'Podcast/Read':
+    elif category == 'Study':  # Renamed from Podcast/Read - 2 points per hour
         if val >= 3: return 'green'
         elif val >= 1: return 'orange'
         else: return 'red'
     elif category == 'Fehler':
-        if val == 0: return 'green'
-        elif val <= 2: return 'orange'
-        else: return 'red'
-    elif category == 'Recovery':
-        # Spezielle Behandlung für Recovery
-        if val == 0: return 'darkgreen'  # Dark green für Rest Day (0)
-        else: return 'red'  # Alles andere ist ungültig
+        if val == 0:
+            return 'green'  # Keine Fehler = grün
+        else:
+            # Prüfe ob es der erste Fehler der Woche ist (braucht week context)
+            if person and day and week:
+                fehler_points = calculate_fehler_points_for_day(person, day, week)
+                if fehler_points == 0:
+                    return 'green'  # Erster Fehler = grün (toleriert)
+                else:
+                    return 'red'  # Weitere Fehler = rot
+            else:
+                return 'red'  # Fallback
     elif category == 'Cold Plunge':
-        # Nur grün oder rot - 1=grün, 0/leer=rot
         if val >= 1: return 'green'
         else: return 'red'
     elif category == 'PB':
-        # Stunden: 8=grün, 6=grün, 4=orange, 2=orange, 0=rot
         if val >= 6: return 'green'
         elif val >= 2: return 'orange'
         else: return 'red'
-
     return 'white'
 
-def validate_recovery_entry(value, person, day, week):
-    """Validiere Recovery-Einträge: R nur wenn Gym=0 und Steps>=5000"""
+def validate_gym_r_entry(value, person, week):
+    """Validiere Gym 'R' Einträge: nur 1x pro Woche erlaubt"""
     if not value or str(value).upper() != 'R':
-        return True  # Andere Werte (0, leer) sind immer erlaubt
+        return True  # Andere Werte sind immer erlaubt
 
-    # Für 'R' müssen spezielle Bedingungen erfüllt sein
+    # Zähle bereits vorhandene 'R' Einträge in der Woche
     week_data = data_store.get(week, {})
     person_data = week_data.get(person, {})
-    day_data = person_data.get(day, {})
 
-    # Prüfe Gym = 0
-    gym_value = day_data.get('Gym', '')
+    r_count = 0
+    for day in DAYS:
+        day_data = person_data.get(day, {})
+        gym_value = day_data.get('Gym', '')
+        if str(gym_value).upper() == 'R':
+            r_count += 1
+
+    # Nur 1 'R' pro Woche erlaubt
+    return r_count < 1
+
+def calculate_fehler_points_for_day(person, target_day, week):
+    """Berechne Fehler-Punkte für einen Tag basierend auf der gesamten Woche
+    Regel: Erster Fehler der Woche = 0 Punkte, alle weiteren = -2 Punkte
+    """
+    week_data = data_store.get(week, {})
+    person_data = week_data.get(person, {})
+
+    # Sammle alle Fehler der gesamten Woche in chronologischer Reihenfolge
+    all_week_errors = []
+
+    for day in DAYS:
+        day_data = person_data.get(day, {})
+        fehler_value = day_data.get('Fehler', '')
+        if fehler_value and fehler_value.strip():
+            try:
+                fehler_count = int(float(fehler_value))
+                if fehler_count > 0:
+                    # Füge für jeden Fehler dieses Tages einen Eintrag hinzu
+                    for _ in range(fehler_count):
+                        all_week_errors.append(day)
+            except:
+                pass
+
+    # Finde Fehler für den Ziel-Tag
+    target_day_data = person_data.get(target_day, {})
+    target_fehler_value = target_day_data.get('Fehler', '')
+
+    if not target_fehler_value or target_fehler_value.strip() == '':
+        return 0
+
     try:
-        gym_val = float(gym_value) if gym_value else 0
+        target_fehler_count = int(float(target_fehler_value))
     except:
-        gym_val = 0
+        return 0
 
-    # Prüfe Steps >= 5000
-    steps_value = day_data.get('Steps', '')
-    try:
-        steps_val = float(steps_value) if steps_value else 0
-    except:
-        steps_val = 0
+    if target_fehler_count <= 0:
+        return 0
 
-    # R ist nur erlaubt wenn Gym = 0 und Steps >= 5000
-    return gym_val == 0 and steps_val >= 5000
+    # Berechne welche Position die Fehler des Ziel-Tags in der Gesamt-Woche haben
+    total_points = 0
+    error_position = 1  # Zähler für die Gesamtposition der Fehler
+
+    for day in DAYS:
+        day_data = person_data.get(day, {})
+        day_fehler_value = day_data.get('Fehler', '')
+
+        if day_fehler_value and day_fehler_value.strip():
+            try:
+                day_fehler_count = int(float(day_fehler_value))
+                if day_fehler_count > 0:
+                    # Wenn das der Ziel-Tag ist, berechne Punkte
+                    if day == target_day:
+                        for _ in range(day_fehler_count):
+                            if error_position == 1:
+                                total_points += 0  # Erster Fehler der Woche = 0 Punkte
+                            else:
+                                total_points += -2  # Weitere Fehler = -2 Punkte
+                            error_position += 1
+                        break
+                    else:
+                        # Andere Tage: erhöhe nur den Zähler
+                        error_position += day_fehler_count
+            except:
+                pass
+
+    return total_points
 
 def calculate_daily_total(person, day, week):
     """Berechne Tagespunkte für eine Person"""
@@ -252,7 +300,11 @@ def calculate_daily_total(person, day, week):
 
     for category in CATEGORIES:
         value = day_data.get(category, '')
-        points = calculate_points(category, value)
+        if category == 'Fehler':
+            # Spezielle Behandlung für Fehler (wochenweise Toleranz)
+            points = calculate_fehler_points_for_day(person, day, week)
+        else:
+            points = calculate_points(category, value)
         total += points
 
     return round(total, 2)
@@ -262,7 +314,64 @@ def calculate_weekly_total(person, week):
     total = 0
     for day in DAYS:
         total += calculate_daily_total(person, day, week)
+
+    # Add weekly bonus points
+    bonus_points = calculate_weekly_bonus(person, week)
+    total += bonus_points
+
     return round(total, 2)
+
+def calculate_weekly_bonus(person, week):
+    """Berechne Wochen-Bonus: 5x Gym = 2 Punkte, 7 fehlerfreie Tage = 2 Punkte"""
+    week_data = data_store.get(week, {})
+    person_data = week_data.get(person, {})
+
+    bonus_points = 0
+
+    # Bonus 1: 5x Gym = 2 Bonus-Punkte
+    gym_count = 0
+    for day in DAYS:
+        day_data = person_data.get(day, {})
+        gym_value = day_data.get('Gym', '')
+
+        # Zähle nur echte Workouts, nicht 'R' (Rest Day)
+        if gym_value and str(gym_value).upper() != 'R':
+            try:
+                gym_val = float(gym_value)
+                if gym_val > 0:
+                    gym_count += gym_val
+            except:
+                pass
+
+    if gym_count >= 5:
+        bonus_points += 2
+
+    # Bonus 2: 7 fehlerfreie Tage = 2 Bonus-Punkte
+    # ALLE 7 Tage müssen eingetragen UND 0 sein (grün)
+    all_days_filled_and_zero = True
+    for day in DAYS:
+        day_data = person_data.get(day, {})
+        fehler_value = day_data.get('Fehler', '')
+
+        # Tag muss einen Wert haben UND dieser muss 0 sein
+        if not fehler_value or fehler_value.strip() == '':
+            all_days_filled_and_zero = False  # Kein Eintrag = kein Bonus
+            break
+
+        try:
+            fehler_val = float(fehler_value)
+            if fehler_val != 0:
+                all_days_filled_and_zero = False  # Nicht 0 = kein Bonus
+                break
+        except:
+            all_days_filled_and_zero = False  # Ungültiger Wert = kein Bonus
+            break
+
+    # Nur wenn alle 7 Tage explizit mit 0 eingetragen sind
+    if all_days_filled_and_zero:
+        bonus_points += 2
+
+    return bonus_points
 
 def get_weekly_scoreboard(week):
     """Erstelle Scoreboard für eine Woche"""
@@ -326,7 +435,7 @@ def get_weeks_with_data():
             person_data = week_data.get(person, {})
             for day in DAYS:
                 day_data = person_data.get(day, {})
-                if any(day_data.get(cat, '').strip() for cat in ['Gym', 'Food', 'Sleep', 'Study', 'Steps', 'Work'] if day_data.get(cat, '').strip()):
+                if any(day_data.get(cat, '').strip() for cat in ['Gym', 'Food', 'Sleep', 'FH', 'Steps', 'Work'] if day_data.get(cat, '').strip()):
                     has_data = True
                     break
             if has_data:
@@ -341,8 +450,8 @@ def get_category_data_for_charts():
     """Erstelle Kategorie-Daten für Charts - nur für Wochen mit Daten"""
     category_data = {}
 
-    # Relevante Kategorien für Charts
-    chart_categories = ['Gym', 'Food', 'Sleep', 'Study', 'Steps', 'Work']
+    # Relevante Kategorien für Charts (updated names)
+    chart_categories = ['Gym', 'Food', 'Sleep', 'FH', 'Steps', 'Work']
 
     # Nur Wochen mit tatsächlichen Daten verwenden
     weeks_with_data = get_weeks_with_data()
@@ -390,7 +499,7 @@ def get_current_week_leaders():
     week_key = f'KW{current_week}'
 
     leaders = {}
-    chart_categories = ['Gym', 'Food', 'Sleep', 'Study', 'Steps', 'Work']
+    chart_categories = ['Gym', 'Food', 'Sleep', 'FH', 'Steps', 'Work']
 
     for category in chart_categories:
         category_scores = {}
@@ -425,10 +534,10 @@ def get_current_week_leaders():
     return leaders
 
 def get_current_week_scoreboard():
-    """Erstelle Leaderboard für aktuelle Woche"""
-    current_week = get_current_week_number()
-    week_key = f'KW{current_week}'
-    return get_weekly_scoreboard(week_key), current_week
+    """Erstelle Leaderboard für anzuzeigende Woche (vorherige abgeschlossene Woche)"""
+    scoreboard_week = get_scoreboard_week()
+    week_key = f'KW{scoreboard_week}'
+    return get_weekly_scoreboard(week_key), scoreboard_week
 
 def get_daily_statistics(week_num=None):
     """Erstelle tägliche Statistiken für eine Woche"""
@@ -449,6 +558,50 @@ def get_daily_statistics(week_num=None):
         daily_stats[day]['ranking'] = day_ranking
 
     return daily_stats, week_num
+
+def is_scoreboard_visible():
+    """Prüfe ob Scoreboards sichtbar sein sollen (Sonntag 22:00 - nächster Sonntag 22:00)"""
+    now = datetime.now()
+    current_weekday = now.weekday()  # 0=Montag, 6=Sonntag
+    current_hour = now.hour
+
+    # Sonntag (6) ab 22:00
+    if current_weekday == 6 and current_hour >= 22:
+        return True
+
+    # Montag bis Samstag (ganze Woche)
+    if current_weekday >= 0 and current_weekday <= 5:
+        return True
+
+    # Sonntag vor 22:00
+    if current_weekday == 6 and current_hour < 22:
+        return True
+
+    return False
+
+def get_scoreboard_week():
+    """Bestimme welche Woche im Scoreboard angezeigt werden soll"""
+    now = datetime.now()
+    current_week = now.isocalendar()[1]
+    current_weekday = now.weekday()  # 0=Montag, 6=Sonntag
+    current_hour = now.hour
+
+    # Wenn Sonntag ab 22:00, zeige aktuelle Woche (die gerade abgeschlossen wurde)
+    if current_weekday == 6 and current_hour >= 22:
+        return current_week
+
+    # Sonst zeige vorherige Woche
+    previous_week = current_week - 1
+
+    # Handle year boundary (wenn wir in KW 1 sind und vorherige Woche brauchen)
+    if previous_week < 1:
+        # Get last week of previous year
+        from datetime import date
+        last_year = now.year - 1
+        last_date_of_year = date(last_year, 12, 31)
+        previous_week = last_date_of_year.isocalendar()[1]
+
+    return previous_week
 
 def require_auth():
     """Prüfe ob Benutzer eingeloggt ist"""
@@ -668,7 +821,8 @@ def index():
                          total_scoreboard=total_scoreboard,
                          current_week_scoreboard=current_week_scoreboard,
                          current_week_num=current_week_num,
-                         daily_stats=daily_stats)
+                         daily_stats=daily_stats,
+                         show_scoreboards=is_scoreboard_visible())
 
 @app.route('/api/chart-data')
 def chart_data():
@@ -737,8 +891,13 @@ def week_view(week_num):
 
             for category in CATEGORIES:
                 value = person_day_data.get(category, '')
-                points = calculate_points(category, value)
-                color = get_cell_color(category, value)
+                if category == 'Fehler':
+                    # Spezielle Behandlung für Fehler mit Week-Context
+                    points = calculate_fehler_points_for_day(person, day, week_key)
+                    color = get_cell_color(category, value, person, day, week_key)
+                else:
+                    points = calculate_points(category, value)
+                    color = get_cell_color(category, value)
 
                 day_data[category] = {
                     'value': value,
@@ -754,10 +913,76 @@ def week_view(week_num):
         # Wochenpunkte
         weekly_total = calculate_weekly_total(person, week_key)
         person_data['weekly_total'] = weekly_total
+
+        # Add bonus row data
+        bonus_points = calculate_weekly_bonus(person, week_key)
+
+        # Berechne einzelne Bonus-Komponenten
+        person_week_data = data_store[week_key].get(person, {})
+
+        # Gym Bonus (5x Gym = 2 Punkte)
+        gym_count = 0
+        for day in DAYS:
+            day_data = person_week_data.get(day, {})
+            gym_value = day_data.get('Gym', '')
+            if gym_value and str(gym_value).upper() != 'R':
+                try:
+                    gym_val = float(gym_value)
+                    if gym_val > 0:
+                        gym_count += gym_val
+                except:
+                    pass
+
+        gym_bonus = 2 if gym_count >= 5 else 0
+
+        # Fehler Bonus (7 fehlerfreie Tage = 2 Punkte)
+        error_free_days = 0
+        for day in DAYS:
+            day_data = person_week_data.get(day, {})
+            fehler_value = day_data.get('Fehler', '')
+
+            # Tag ist fehlerfrei wenn kein Wert oder Wert = 0
+            is_error_free = True
+            if fehler_value and fehler_value.strip():
+                try:
+                    fehler_val = float(fehler_value)
+                    if fehler_val > 0:
+                        is_error_free = False
+                except:
+                    # Ungültiger Wert = kein Fehler
+                    pass
+
+            if is_error_free:
+                error_free_days += 1
+
+        fehler_bonus = 2 if error_free_days == 7 else 0
+
+        person_data['bonus'] = {
+            'value': bonus_points if bonus_points > 0 else '',
+            'points': bonus_points,
+            'color': 'green' if bonus_points > 0 else 'white',
+            'gym_bonus': gym_bonus,
+            'fehler_bonus': fehler_bonus
+        }
+
         week_data[person] = person_data
 
     # Scoreboard
     scoreboard = get_weekly_scoreboard(week_key)
+
+    # Get current user info for personalization
+    current_user = get_current_user()
+    current_user_name = None
+
+    # Map Firebase user to our system names (email-based mapping)
+    if current_user and current_user.get('email'):
+        email = current_user['email'].lower()
+        if 'david' in email:
+            current_user_name = 'David'
+        elif 'cedric.müller3' in email or 'cedric.mueller3' in email:
+            current_user_name = 'Müller'
+        elif 'cédric.neuhaus' in email or 'cedric.neuhaus' in email:
+            current_user_name = 'Cedric'
 
     return render_template('week.html',
                          week_num=week_num,
@@ -765,7 +990,9 @@ def week_view(week_num):
                          names=NAMES,
                          categories=CATEGORIES,
                          days=DAYS,
-                         scoreboard=scoreboard)
+                         scoreboard=scoreboard,
+                         current_user_name=current_user_name,
+                         show_scoreboards=is_scoreboard_visible())
 
 @app.route('/update_cell', methods=['POST'])
 def update_cell():
@@ -773,51 +1000,201 @@ def update_cell():
     if not require_auth():
         return jsonify({'error': 'Authentication required'}), 401
 
-    data = request.json
-    week = data.get('week')
-    person = data.get('person')
-    day = data.get('day')
-    category = data.get('category')
-    value = data.get('value', '')
+    try:
+        data = request.json
+        week = data.get('week')
+        person = data.get('person')
+        day = data.get('day')
+        category = data.get('category')
+        value = data.get('value', '')
 
-    # Validierung
-    if week not in data_store:
-        return jsonify({'error': 'Invalid week'}), 400
+        # Validierung
+        if week not in data_store:
+            return jsonify({'error': 'Invalid week'}), 400
 
-    if person not in NAMES or day not in DAYS or category not in CATEGORIES:
-        return jsonify({'error': 'Invalid parameters'}), 400
+        if person not in NAMES or day not in DAYS or category not in CATEGORIES:
+            return jsonify({'error': 'Invalid parameters'}), 400
 
-    # Recovery Validierung
-    if category == 'Recovery' and not validate_recovery_entry(value, person, day, week):
-        return jsonify({'error': 'Recovery "R" nur bei Gym=0 und Steps≥5000 möglich'}), 400
+        # Gym 'R' Validierung
+        if category == 'Gym' and not validate_gym_r_entry(value, person, week):
+            return jsonify({'error': 'Gym "R" nur 1x pro Woche möglich'}), 400
 
-    # Update Daten
-    if person not in data_store[week]:
-        data_store[week][person] = {}
-    if day not in data_store[week][person]:
-        data_store[week][person][day] = {}
+        # Update Daten
+        if person not in data_store[week]:
+            data_store[week][person] = {}
+        if day not in data_store[week][person]:
+            data_store[week][person][day] = {}
 
-    data_store[week][person][day][category] = value
+        data_store[week][person][day][category] = value
 
-    # Speichere auch in der Datenbank
-    update_entry(week, person, day, category, value)
+        # Speichere auch in der Datenbank
+        update_entry(week, person, day, category, value)
 
-    # Berechne neue Werte
-    points = calculate_points(category, value)
-    color = get_cell_color(category, value)
-    daily_total = calculate_daily_total(person, day, week)
-    weekly_total = calculate_weekly_total(person, week)
+        # Berechne neue Werte
+        if category == 'Fehler':
+            points = calculate_fehler_points_for_day(person, day, week)
+            color = get_cell_color(category, value, person, day, week)
+        else:
+            points = calculate_points(category, value)
+            color = get_cell_color(category, value)
+        daily_total = calculate_daily_total(person, day, week)
+        weekly_total = calculate_weekly_total(person, week)
 
-    # Scoreboard neu berechnen
-    scoreboard = get_weekly_scoreboard(week)
+        # Bonus neu berechnen
+        bonus_points = calculate_weekly_bonus(person, week)
 
-    return jsonify({
-        'points': points,
-        'color': color,
-        'daily_total': daily_total,
-        'weekly_total': weekly_total,
-        'scoreboard': scoreboard
-    })
+        # Berechne einzelne Bonus-Komponenten
+        week_data = data_store.get(week, {})
+        person_data = week_data.get(person, {})
+
+        # Gym Bonus (5x Gym = 2 Punkte)
+        gym_count = 0
+        for day in DAYS:
+            day_data = person_data.get(day, {})
+            gym_value = day_data.get('Gym', '')
+            if gym_value and str(gym_value).upper() != 'R':
+                try:
+                    gym_val = float(gym_value)
+                    if gym_val > 0:
+                        gym_count += gym_val
+                except:
+                    pass
+
+        gym_bonus = 2 if gym_count >= 5 else 0
+
+        # Fehler Bonus (7 fehlerfreie Tage = 2 Punkte)
+        # ALLE 7 Tage müssen eingetragen UND 0 sein (grün)
+        all_days_filled_and_zero = True
+        for day in DAYS:
+            day_data = person_data.get(day, {})
+            fehler_value = day_data.get('Fehler', '')
+
+            # Tag muss einen Wert haben UND dieser muss 0 sein
+            if not fehler_value or fehler_value.strip() == '':
+                all_days_filled_and_zero = False  # Kein Eintrag = kein Bonus
+                break
+
+            try:
+                fehler_val = float(fehler_value)
+                if fehler_val != 0:
+                    all_days_filled_and_zero = False  # Nicht 0 = kein Bonus
+                    break
+            except:
+                all_days_filled_and_zero = False  # Ungültiger Wert = kein Bonus
+                break
+
+        fehler_bonus = 2 if all_days_filled_and_zero else 0
+
+        # Scoreboard neu berechnen
+        scoreboard = get_weekly_scoreboard(week)
+
+        # Berechne Bonus für alle Personen (da sich Bedingungen ändern können)
+        all_bonus_data = {}
+        for p in NAMES:
+            p_bonus_points = calculate_weekly_bonus(p, week)
+
+            # Berechne einzelne Bonus-Komponenten für Person p
+            p_week_data = data_store.get(week, {})
+            p_person_data = p_week_data.get(p, {})
+
+            # Gym Bonus für Person p
+            p_gym_count = 0
+            for day in DAYS:
+                day_data = p_person_data.get(day, {})
+                gym_value = day_data.get('Gym', '')
+                if gym_value and str(gym_value).upper() != 'R':
+                    try:
+                        gym_val = float(gym_value)
+                        if gym_val > 0:
+                            p_gym_count += gym_val
+                    except:
+                        pass
+
+            p_gym_bonus = 2 if p_gym_count >= 5 else 0
+
+            # Fehler Bonus für Person p (7 fehlerfreie Tage = 2 Punkte)
+            # ALLE 7 Tage müssen eingetragen UND 0 sein (grün)
+            p_all_days_filled_and_zero = True
+            for day in DAYS:
+                day_data = p_person_data.get(day, {})
+                fehler_value = day_data.get('Fehler', '')
+
+                # Tag muss einen Wert haben UND dieser muss 0 sein
+                if not fehler_value or fehler_value.strip() == '':
+                    p_all_days_filled_and_zero = False  # Kein Eintrag = kein Bonus
+                    break
+
+                try:
+                    fehler_val = float(fehler_value)
+                    if fehler_val != 0:
+                        p_all_days_filled_and_zero = False  # Nicht 0 = kein Bonus
+                        break
+                except:
+                    p_all_days_filled_and_zero = False  # Ungültiger Wert = kein Bonus
+                    break
+
+            p_fehler_bonus = 2 if p_all_days_filled_and_zero else 0
+
+            all_bonus_data[p] = {
+                'bonus_points': p_bonus_points,
+                'bonus_color': 'green' if p_bonus_points > 0 else 'white',
+                'gym_bonus': p_gym_bonus,
+                'fehler_bonus': p_fehler_bonus
+            }
+
+        response_data = {
+            'points': points,
+            'color': color,
+            'daily_total': daily_total,
+            'weekly_total': weekly_total,
+            'bonus_points': bonus_points,
+            'bonus_color': 'green' if bonus_points > 0 else 'white',
+            'gym_bonus': gym_bonus,
+            'fehler_bonus': fehler_bonus,
+            'all_bonus_data': all_bonus_data,
+            'scoreboard': scoreboard
+        }
+
+        # Wenn Fehler-Kategorie geändert wurde, berechne alle Fehler-Zellen dieser Person neu
+        if category == 'Fehler':
+            fehler_updates = {}
+            for fehler_day in DAYS:
+                fehler_day_data = person_data.get(fehler_day, {})
+                fehler_value = fehler_day_data.get('Fehler', '')
+
+                # Neu berechnen für jeden Tag
+                fehler_points = calculate_fehler_points_for_day(person, fehler_day, week)
+                fehler_color = get_cell_color('Fehler', fehler_value, person, fehler_day, week)
+                fehler_daily_total = calculate_daily_total(person, fehler_day, week)
+
+                fehler_updates[fehler_day] = {
+                    'points': fehler_points,
+                    'color': fehler_color,
+                    'daily_total': fehler_daily_total
+                }
+
+            response_data['fehler_updates'] = fehler_updates
+
+        return jsonify(response_data)
+
+    except Exception as e:
+        # Log the error but don't fail the update
+        print(f"⚠️  Cell update warning: {e}")
+
+        # Return minimal successful response to prevent frontend errors
+        return jsonify({
+            'points': 0,
+            'color': 'white',
+            'daily_total': 0,
+            'weekly_total': 0,
+            'bonus_points': 0,
+            'bonus_color': 'white',
+            'gym_bonus': 0,
+            'fehler_bonus': 0,
+            'all_bonus_data': {},
+            'scoreboard': [],
+            'warning': 'Update completed with warnings'
+        })
 
 @app.route('/api/data')
 def get_all_data_api():

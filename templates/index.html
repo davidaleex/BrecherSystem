@@ -60,7 +60,8 @@
                 <p>Aktuelle Standings und Übersicht</p>
             </div>
 
-            <!-- Current Week Leaderboard - TOP PRIORITY -->
+            <!-- Leaderboard der abgeschlossenen Woche - Sichtbar eine ganze Woche lang -->
+            {% if show_scoreboards %}
             <div class="current-week-hero">
                 <h2 class="hero-title">🏆 LEADERBOARD KW {{ current_week_num }}</h2>
                 <div class="hero-podium">
@@ -82,6 +83,15 @@
                     {% endfor %}
                 </div>
             </div>
+            {% else %}
+            <div class="scoreboard-hidden">
+                <h2 class="hero-title">🔒 LEADERBOARD GESPERRT</h2>
+                <p class="hidden-message">Das Leaderboard wird eine ganze Woche lang angezeigt (Sonntag 22:00 - nächster Sonntag 22:00)!</p>
+                <div class="countdown-timer">
+                    <p>⏰ Nächste Freigabe: Sonntag 22:00 Uhr</p>
+                </div>
+            </div>
+            {% endif %}
 
 
         </section>
