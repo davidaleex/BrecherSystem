@@ -580,25 +580,36 @@ def is_scoreboard_visible():
     return False
 
 def calculate_user_statistics(user_name):
-    """Berechne Statistiken für einen User: Wins, Gesamtpunkte, absolvierte Wochen"""
+    """Berechne Statistiken für einen User: Wins, Gesamtpunkte, absolvierte Wochen
+    
+    WICHTIG: Wins werden nur für abgeschlossene Wochen gezählt!
+    Eine Woche gilt als abgeschlossen, wenn sie im offiziellen Scoreboard angezeigt wird.
+    Das passiert ab Sonntag 22:00 für die gerade beendete Woche.
+    """
     if user_name not in NAMES:
         return {'wins': 0, 'total_points': 0, 'completed_weeks': 0}
 
     wins = 0
     total_points = 0
     completed_weeks = 0
+    
+    # Bestimme welche Woche aktuell im Scoreboard angezeigt wird
+    # Nur Wochen bis zu dieser Woche (einschließlich) zählen für Wins
+    current_scoreboard_week = get_scoreboard_week()
 
     for week in get_weeks_list():
         week_key = f'KW{week}'
 
-        # Berechne Gesamtpunkte für diese Woche
+        # Berechne Gesamtpunkte für diese Woche (immer, unabhängig vom Zeitpunkt)
         week_points = calculate_weekly_total(user_name, week_key)
         total_points += week_points
 
         # Prüfe ob User diese Woche gewonnen hat
-        week_scoreboard = get_weekly_scoreboard(week_key)
-        if week_scoreboard and week_scoreboard[0][0] == user_name:
-            wins += 1
+        # ABER: Wins nur zählen wenn Woche bereits "abgeschlossen" ist (im Scoreboard angezeigt wird)
+        if week <= current_scoreboard_week:
+            week_scoreboard = get_weekly_scoreboard(week_key)
+            if week_scoreboard and week_scoreboard[0][0] == user_name:
+                wins += 1
 
         # Prüfe ob Woche "absolviert" (alle Kategorien ausgefüllt)
         week_data = data_store.get(week_key, {})
