@@ -356,8 +356,11 @@
 
                 showMessage("✅ Registrierung erfolgreich! Profil wird erstellt...", "success");
 
-                // Get Firebase token
-                const token = await userCredential.user.getIdToken();
+                // Wait a moment for profile update to propagate, then refresh token
+                await new Promise(resolve => setTimeout(resolve, 1000));
+
+                // Force token refresh to include updated profile
+                const token = await userCredential.user.getIdToken(true);
                 log(`Token obtained for new user, length: ${token.length}`);
 
                 // Send token to backend for verification

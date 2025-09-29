@@ -76,12 +76,24 @@ def verify_firebase_token(id_token):
         print(f"✅ Token verified successfully")
         print(f"🔥 Token claims: uid={decoded_token.get('uid')}, email={decoded_token.get('email')}, name={decoded_token.get('name')}")
 
+        # Get additional user info from Firebase Admin SDK
+        uid = decoded_token['uid']
+        try:
+            user_record = auth.get_user(uid)
+            display_name = user_record.display_name
+            profile_picture = user_record.photo_url
+            print(f"🔥 User record retrieved: display_name={display_name}")
+        except Exception as e:
+            print(f"⚠️ Could not get user record: {e}")
+            display_name = decoded_token.get('name')
+            profile_picture = decoded_token.get('picture')
+
         user_info = {
             'firebase_uid': decoded_token['uid'],
             'email': decoded_token.get('email'),
             'email_verified': decoded_token.get('email_verified', False),
-            'display_name': decoded_token.get('name'),
-            'profile_picture': decoded_token.get('picture')
+            'display_name': display_name,
+            'profile_picture': profile_picture
         }
 
         print(f"✅ User info extracted successfully: email={user_info['email']}, verified={user_info['email_verified']}")
