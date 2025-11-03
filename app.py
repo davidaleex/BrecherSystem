@@ -20,7 +20,7 @@ WEBSITE_PASSWORD = 'AlphaBrecher'
 
 # BrecherSystem Konfiguration
 NAMES = ['David', 'Cedric', 'Müller']
-CATEGORIES = ['Gym', 'Food', 'Supps', 'Sleep', 'FH', 'Steps', 'Hausarbeit', 'Work', 'Study', 'Fehler', 'Cold Plunge', 'PB']
+CATEGORIES = ['Gym', 'Food', 'Supps', 'Sleep', 'FH', 'Steps', 'Hausarbeit', 'Work', 'Study', 'Fehler', 'Morgenroutine', 'Abendroutine', 'PB']
 DAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']
 # get_weeks_list() wird jetzt dynamisch aus der Datenbank geladen
 
@@ -127,8 +127,10 @@ def calculate_points(category, value):
     elif category == 'Fehler':
         # Fehler-Berechnung erfolgt über die ganze Woche (siehe calculate_daily_total)
         return val * -2  # Temporär, wird in calculate_daily_total überschrieben
-    elif category == 'Cold Plunge':
-        return 1 if val > 0 else 0
+    elif category == 'Morgenroutine':
+        return 2 if val >= 1 else 0
+    elif category == 'Abendroutine':
+        return 2 if val >= 1 else 0
     elif category == 'PB':
         # 1h = 1 Punkt (direkte Umrechnung)
         return val
@@ -196,7 +198,10 @@ def get_cell_color(category, value, person=None, day=None, week=None):
                     return 'red'  # Weitere Fehler = rot
             else:
                 return 'red'  # Fallback
-    elif category == 'Cold Plunge':
+    elif category == 'Morgenroutine':
+        if val >= 1: return 'green'
+        else: return 'red'
+    elif category == 'Abendroutine':
         if val >= 1: return 'green'
         else: return 'red'
     elif category == 'PB':
@@ -491,14 +496,13 @@ def get_category_data_for_charts():
     category_data = {}
 
     # ALLE Kategorien für Charts (Backend -> Frontend Mapping)
-    # Alle 12 Backend categories: ['Gym', 'Food', 'Supps', 'Sleep', 'FH', 'Steps', 'Hausarbeit', 'Work', 'Study', 'Fehler', 'Cold Plunge', 'PB']
-    backend_categories = ['Gym', 'Food', 'Supps', 'Sleep', 'FH', 'Steps', 'Hausarbeit', 'Work', 'Study', 'Fehler', 'Cold Plunge', 'PB']
+    # Alle 13 Backend categories: ['Gym', 'Food', 'Supps', 'Sleep', 'FH', 'Steps', 'Hausarbeit', 'Work', 'Study', 'Fehler', 'Morgenroutine', 'Abendroutine', 'PB']
+    backend_categories = ['Gym', 'Food', 'Supps', 'Sleep', 'FH', 'Steps', 'Hausarbeit', 'Work', 'Study', 'Fehler', 'Morgenroutine', 'Abendroutine', 'PB']
     
     # Frontend-Namen Mapping (falls nötig)
     frontend_names = {
         'FH': 'FH (University)',  # FH bleibt FH
-        'Supps': 'Supplements', 
-        'Cold Plunge': 'Cold Plunge',
+        'Supps': 'Supplements',
         'PB': 'Personal Business'
     }
     
@@ -563,12 +567,11 @@ def get_current_week_leaders():
         # Laufende Woche - Leaders zeigen aber KEINE Punkte verraten!
         week_key = f'KW{current_week}'
         leaders = {}
-        # Backend/Frontend Mapping für Leaders (ALLE 12 Kategorien)
-        backend_categories = ['Gym', 'Food', 'Supps', 'Sleep', 'FH', 'Steps', 'Hausarbeit', 'Work', 'Study', 'Fehler', 'Cold Plunge', 'PB']
+        # Backend/Frontend Mapping für Leaders (ALLE 13 Kategorien)
+        backend_categories = ['Gym', 'Food', 'Supps', 'Sleep', 'FH', 'Steps', 'Hausarbeit', 'Work', 'Study', 'Fehler', 'Morgenroutine', 'Abendroutine', 'PB']
         frontend_names = {
             'FH': 'FH (University)',
-            'Supps': 'Supplements', 
-            'Cold Plunge': 'Cold Plunge',
+            'Supps': 'Supplements',
             'PB': 'Personal Business'
         }
         
@@ -610,11 +613,10 @@ def get_current_week_leaders():
     # Woche ist abgeschlossen - normale Leader-Berechnung
     week_key = f'KW{current_scoreboard_week}'
     leaders = {}
-    backend_categories = ['Gym', 'Food', 'Supps', 'Sleep', 'FH', 'Steps', 'Hausarbeit', 'Work', 'Study', 'Fehler', 'Cold Plunge', 'PB']
+    backend_categories = ['Gym', 'Food', 'Supps', 'Sleep', 'FH', 'Steps', 'Hausarbeit', 'Work', 'Study', 'Fehler', 'Morgenroutine', 'Abendroutine', 'PB']
     frontend_names = {
         'FH': 'FH (University)',
-        'Supps': 'Supplements', 
-        'Cold Plunge': 'Cold Plunge',
+        'Supps': 'Supplements',
         'PB': 'Personal Business'
     }
 

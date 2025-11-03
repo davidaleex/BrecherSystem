@@ -213,12 +213,6 @@
                 </tbody>
             </table>
         </div>
-
-
-        <div class="actions">
-            <button onclick="saveData()" class="save-button">💾 Daten speichern</button>
-            <button onclick="loadData()" class="load-button">📁 Daten laden</button>
-        </div>
     </div>
 
     <script>
@@ -347,40 +341,6 @@
                 console.error('Error:', error);
                 alert('Fehler beim Update der Zelle');
             });
-        }
-
-
-        function saveData() {
-            fetch('/api/save', { method: 'POST' })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        showNotification('✅ Daten gespeichert!');
-                    } else {
-                        showNotification('❌ Fehler beim Speichern');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    showNotification('❌ Fehler beim Speichern');
-                });
-        }
-
-        function loadData() {
-            fetch('/api/load', { method: 'POST' })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        showNotification('✅ Daten geladen!');
-                        location.reload();
-                    } else {
-                        showNotification('❌ Fehler beim Laden');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    showNotification('❌ Fehler beim Laden');
-                });
         }
 
         function showNotification(message) {
